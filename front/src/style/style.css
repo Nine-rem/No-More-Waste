@@ -1,0 +1,195 @@
+
+/* -------------- Body -------------- */
+body {
+    font-family : "Montserrat", sans-serif;
+    font-optical-sizing : auto;
+    font-weight : 100;
+    font-style : normal;
+  }
+  
+  /* -------------- Header -------------- */
+  header {
+    background-color: #F5F5F7 !important;
+    color: black; 
+  }
+  .bg-body-tertiary {
+    background-color: #F5F5F7 !important;
+  
+  }
+  .navbar-toggler:focus{ 
+    outline: unset;
+    border: unset;
+    box-shadow: none;
+  }
+  .dropdown-item:hover {
+    background-color: #F5F5F7;
+  }
+  .dropdown-item:focus {
+    background-color:black;
+    color: white;
+  }
+  .navbar-nav .nav-item:hover .nav-link {
+    color: #AF7357;
+  }
+  .navbar-nav .nav-item .nav-link {
+    color: black;
+  }
+  .dropdown-toggle::after, .dropdown-toggle::before {
+    border-top-color: #ABABAB;
+  }
+  .form-control:focus {
+    border-color: #AF7357;
+    box-shadow: 0 0 0 0.25rem rgba(175, 115, 87, 0.25);
+  }
+  
+  /* -------------- Footer -------------- */
+  footer {
+    background-color: black;
+    color: white; 
+  }
+  footer a {
+    color : white !important;
+  }
+  footer a:hover {
+    color : #AF7357 !important;
+  }
+  
+  /* -------------- Bouton -------------- */
+  
+  .btn-dark:hover {
+    background-color: #ABABAB !important;
+    border-color: #ABABAB !important;
+    color: white;
+  }
+  .btn-margin {
+    margin-top: 30px;
+    margin-bottom: 30px;
+  }
+  .btn-hover-brown:hover {
+    background-color: #AF7357 !important;
+  }
+  
+  /* -------------- Séparateur -------------- */
+  
+  .brown-separator {
+    background-color: #AF7357 !important;
+    height: 10px;
+  }
+  
+  /* -------------- Bloc -------------- */
+  .box {
+    padding-top: 5%;
+    padding-bottom: 5%;
+    padding-left: 10%;
+    padding-right: 10%;
+  }
+  .lightgrey-box {
+    background-color: #F5F5F7;
+  }
+  .my-4 {
+    margin-bottom: unset !important;
+    margin-top: unset !important;
+  }
+  .box-margin-right {
+    padding-right: 5%;
+  }
+  .box-margin-left {
+    padding-left: 5%;
+  }
+  
+  .vertical-align {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* -------------- Titre -------------- */
+  .uppercase {
+    text-transform: uppercase;
+  }
+  .centered-text {
+    text-align: center;
+  }
+  
+  h2 {
+    font-weight: 600;
+    margin-bottom: 30px;
+  }
+  
+  h1 {
+    color: black;
+  }
+  
+  h3, .bold-brown-text {
+    color: #AF7357;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .black-h3 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: black;
+  }
+  
+  .box-margin-left {
+    padding-left: 0% !important;
+  }
+  
+  /* -------------- Hero -------------- */
+  #hero-principal-image {
+    background-image: url("assets/images/chambre-hotel-tropical-transparent.jpg");
+  }
+  
+  .hero-position {
+    background-position: center;
+    background-size: cover;
+  }
+  
+  .hero-primary {
+    height: 500px;
+  }
+  .hero-secondary {
+    height: 300px;
+  }
+  
+  /* -------------- Legal -------------- */
+  .accordion-button:not(.collapsed) {
+    color: white !important;
+    background-color: black !important;
+  }
+  .accordion-button {
+    color: white !important;
+    background-color: #ABABAB !important;
+  }
+  .accordion-button:focus {
+    box-shadow: unset !important;
+  }
+  .text-up {
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  
+  /* -------------- Stay -------------- */
+  .small-italic-text {
+    font-style: italic;
+    font-size: 13px;
+  }
+  
+  .white-75 {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+  
+  
+  
+  .reservation-input {
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 20px; /* Rounded container */
+  }
+  
+  .reservation-input input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 10px; /* Rounded input fields */
+    border: 1px solid #aaa;
+  }
