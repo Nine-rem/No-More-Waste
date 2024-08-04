@@ -39,8 +39,8 @@ const { error } = require('console');
 //inscription de l'utilisateur
 app.post("/register", async (req, res) => {
     let {
-        lastName:lastName,
-        firstName:firstName
+        lastname:lastname,
+        firstname:firstname
     } = req.body;
     const {
         birthdate:birth,
@@ -79,15 +79,15 @@ app.post("/register", async (req, res) => {
         errorArray.phoneNumber = 'Numéro de téléphone invalide';
         }
 
-        const regexName = /^[a-zA-ZÀ-ÿ\s]{2,40}$/;
-       lastName =lastName.trim().toUpperCase();
-       firstName =firstName.trim().toLowerCase();
-       firstName =firstName.charAt(0).toUpperCase() +firstName.slice(1);
-        if (!regexName.test(lastName)) {
-        errorArray.lastName = 'Nom invalide';
+        const regexname = /^[a-zA-ZÀ-ÿ\s]{2,40}$/;
+       lastname =lastname.trim().toUpperCase();
+       firstname =firstname.trim().toLowerCase();
+       firstname =firstname.charAt(0).toUpperCase() +firstname.slice(1);
+        if (!regexname.test(lastname)) {
+        errorArray.lastname = 'Nom invalide';
         }
-        if (!regexName.test(firstName)) {
-        errorArray.firstName = 'Prénom invalide';
+        if (!regexname.test(firstname)) {
+        errorArray.firstname = 'Prénom invalide';
         }
         
         const date = new Date();
@@ -109,8 +109,8 @@ app.post("/register", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        const query = 'INSERT INTO USER(lastName,firstName,birthdate,address,postalCode,city,email,password,phoneNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-        const values = [lastName,firstName,birthdate, address, postalCode, city, email, hashedPassword, phoneNumber];
+        const query = 'INSERT INTO USER(lastname,firstname,birthdate,address,postalCode,city,email,password,phoneNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        const values = [lastname,firstname,birthdate, address, postalCode, city, email, hashedPassword, phoneNumber];
 
         const [insertResult] = await connection.promise().execute(query, values);
         res.json({ message: 'Inscrit!', userId: insertResult.insertId });
@@ -173,7 +173,52 @@ connection.query('SELECT idUser, email, password FROM USER WHERE email = ?', [em
 });
 });
 
+app.get('/account', async (req, res) => {
+    const token = req.cookies.token;
+    if (!token) {
+    return res.status(401).json({ message: 'Non authentifié' });
+    }
 
+    jwt.verify(token, secretKey, (error, decoded) => {
+    if (error) {
+        return res.status(401).json({ message: 'Non authentifié' });
+    }
+
+    const userId = decoded.userId;
+    connection.query(
+        'SELECT * FROM USER WHERE idUser = ?',
+        [userId],
+        (error, results) => {
+        if (error) {
+            return res.status(500).json({ message: 'Erreur de serveur' });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({ message: 'Non authentifié' });
+        }
+
+        const email = results[0].email;
+        const firstname = results[0].firstname;
+        const lastname = results[0].lastname;
+        const isAdmin = results[0].isAdmin;
+        const isMerchant = results[0].isMerchant;
+        const isVolunteer = results[0].isVolunteer;
+        res.json({ email,firstname,lastname, isAdmin, isMerchant, isVolunteer });
+        }
+    );
+    });
+});
+
+app.post('/logout', (req, res) => {
+    res.clearCookie('token').json({ message: 'Déconnecté' });
+}
+);
+app.get('/mdp', (req, res) => {
+    bcrypt.hash('a', 10).then((hash) => {
+      res.json({ hash });
+    });
+  });
+  
 
 /* ----------------------------------------------------------
       Démarrage du serveur

@@ -11,6 +11,8 @@ import LegalPage from './pages/legalPage.jsx';
 import CookiesPage from './pages/cookiesPage.jsx';
 import ServiceTermsPage from './pages/serviceTermsPage.jsx';
 import ContactPage from './pages/contactPage.jsx';
+import AccountPage from './pages/accountPage.jsx';
+import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
 import Layout from './layout.jsx';
 
 axios.defaults.baseURL = 'http://localhost:5000';
@@ -25,9 +27,10 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          <Route oath="/account" element={<AccountPage />} />
+          <Route path="/account" element={<AccountPage />} />
 
 
+          <Route path="/account/becomeVolunteer" element={<BecomeVolunteerPage />} />
 
           <Route path="/quotation" element={<QuotationPage />} />
           <Route path="/legal" element={<LegalPage />} />

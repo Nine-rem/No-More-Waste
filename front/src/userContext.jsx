@@ -8,30 +8,34 @@ export function UserContextProvider({ children }) {
     const [user, setUser] = useState(null);
     const [ready, setReady] = useState(false);
 
-    // useEffect(() => {
-    //         axios.get('/profile', { withCredentials: true })
-    //         .then((response) => {
-    //             const data = response.data;
-    //             // console.log(data);
-    //             if (data) {
-    //                 const userDetails = {
-    //                     firstName: data.firstName,
-    //                     lastName: data.lastName,
-    //                     isAdmin: data.isAdmin,
-    //                     isLandlord: data.isBailleur,
-    //                     isService: data.isPrestaire,
-    //                 };
-    //                 setUser(userDetails);  
-    //             } else {
-    //                 setUser(null);  
-    //             }
-    //             setReady(true);  
-    //         })
-    //         .catch((error) => {
-    //             console.error("Erreur lors de la récupération du profil :", error);
-    //             setReady(true); 
-    //         });
-    // }, []);
+    useEffect(() => {
+            axios.get('/account', { withCredentials: true })
+            .then((response) => {
+                const data = response.data;
+                //console.log(data);
+                if (data) {
+                    const userDetails = {
+                        email: data.email,
+                        isAdmin: data.isAdmin,
+                        isMerchant: data.isMerchant,
+                        isVolunteer: data.isVolunteer,
+                        firstname: data.firstname,
+                        lastname: data.lastname
+                        
+
+
+                    };
+                    setUser(userDetails);  
+                } else {
+                    setUser(null);  
+                }
+                setReady(true);  
+            })
+            .catch((error) => {
+                console.error("Erreur lors de la récupération du profil :", error);
+                setReady(true); 
+            });
+    }, []);
 
     const logout = async () => {
         try {
