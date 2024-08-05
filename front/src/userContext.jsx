@@ -15,6 +15,7 @@ export function UserContextProvider({ children }) {
                 //console.log(data);
                 if (data) {
                     const userDetails = {
+                        idUser: data.idUser,
                         email: data.email,
                         isAdmin: data.isAdmin,
                         isMerchant: data.isMerchant,

@@ -16,6 +16,7 @@ const path = require('path');
 const imageDownloader = require('image-downloader');
 const multer = require('multer');
 const fs = require('fs');
+const { format } = require('date-fns');
 //middleware
 app.use(express.json());
 app.use(cors({
@@ -218,7 +219,97 @@ app.get('/mdp', (req, res) => {
       res.json({ hash });
     });
   });
+
+/* ----------------------------------------------------------
+        Calendrier
+---------------------------------------------------------- */
+// Récupération des créneaux horaires
+
+app.get('/timeslots', (req, res) => {
+    const { date, idService } = req.query;
+    const query = 'SELECT * FROM timeslot WHERE date = ? AND idService = ? AND reserved = FALSE';
+    connection.query(query, [date, idService], (error, results) => {
+      if (error) throw error;
+      res.json(results);
+    });
+  });
+
+
+app.get('/spots', (req, res) => {
+    const { month, year, idService } = req.query;
+    const query = `
+      SELECT date, COUNT(*) as spots
+      FROM timeslot
+      WHERE MONTH(date) = ? AND YEAR(date) = ? AND idService = ? AND reserved = FALSE
+      GROUP BY date
+    `;
+    connection.query(query, [month, year, idService], (error, results) => {
+      if (error) throw error;
+      const spots = results.reduce((acc, row) => {
+        const dateString = format(new Date(row.date), 'yyyy-MM-dd');
+        acc[dateString] = row.spots;
+        return acc;
+      }, {});
+      res.json(spots);
+    });
+  });
+
+  /*----------------------------------------------------------
+
+    Réserver un créneau horaire
+---------------------------------------------------------- */
+app.post('/reservations', (req, res) => {
+    const { token } = req.cookies; // Récupération du token depuis les cookies
+
+    if (!token) {
+      return res.status(401).json({ message: 'Non authentifié' });
+    }
   
+    jwt.verify(token, secretKey, (error, decoded) => {
+      if (error) {
+        return res.status(401).json({ message: 'Token invalide' });
+      }
+    const idUser = decoded.userId;
+    const {idTimeslot } = req.body;
+  
+    console.log('Received idUser:', idUser);  // Ajouter un console.log pour vérifier
+    console.log('Received idTimeslot:', idTimeslot);  // Ajouter un console.log pour vérifier
+    
+    if (!idUser || !idTimeslot) {
+      return res.status(400).send({ error: 'idUser and idTimeslot are required' });
+    }
+  
+    // Mise à jour de la disponibilité pour marquer le créneau comme réservé
+    const updateQuery = 'UPDATE timeslot SET reserved = TRUE WHERE idTimeslot = ?';
+    connection.query(updateQuery, [idTimeslot], (err, result) => {
+      if (err) {
+        console.error('Error updating availability:', err);
+        return res.status(500).send(err);
+      }
+  
+      // Ajout de l'entrée de réservation
+      const insertQuery = 'INSERT INTO reserved (idUser, idTimeslot) VALUES (?, ?)';
+      connection.query(insertQuery, [idUser, idTimeslot], (err, result) => {
+        if (err) {
+          console.error('Error inserting reservation:', err);
+          return res.status(500).send(err);
+        }
+        res.status(200).send({ message: 'Reservation successful!' });
+    });
+});
+});
+});
+/*----------------------------------------------------
+
+  Services
+---------------------------------------------------------- */
+app.get('/services', (req, res) => {
+    const query = 'SELECT * FROM SERVICE';
+    connection.query(query, (error, results) => {
+      if (error) throw error;
+      res.json(results);
+    });
+  });
 
 /* ----------------------------------------------------------
       Démarrage du serveur
