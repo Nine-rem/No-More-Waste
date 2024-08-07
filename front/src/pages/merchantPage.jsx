@@ -17,6 +17,9 @@ function merchantPage() {
             <Link to="/account/merchant/products">
                 <Button variant="primary">Liste des produits</Button>
             </Link>
+            <Link to="/account/merchant/addProduct">
+                <Button variant="primary">Ajouter un produit</Button>
+            </Link>
         </div>
     );
 }

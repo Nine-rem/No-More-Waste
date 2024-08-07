@@ -10,21 +10,28 @@ DROP TABLE IF EXISTS USER;
 DROP TABLE IF EXISTS CATEGORY;
 DROP TABLE IF EXISTS PRODUCT;
 DROP TABLE IF EXISTS PHOTO;
-DROP TABLE IF EXISTS timeslot;
 DROP TABLE IF EXISTS reserved;
+DROP TABLE IF EXISTS timeslot;
 
 -- Table: PHOTO
 CREATE TABLE PHOTO (
     idPhoto INTEGER AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
-    path VARCHAR(255)
+    path VARCHAR(255),
+    description TEXT,
+    idProduct INTEGER,
+    temporary BOOLEAN,
+    FOREIGN KEY (idProduct) REFERENCES PRODUCT(idProduct)
 );
 
 -- Table: PRODUCT
 CREATE TABLE PRODUCT (
     idProduct INTEGER AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
-    reference VARCHAR(255)
+    reference VARCHAR(255),
+    price DECIMAL(10, 2),
+    stock INTEGER,
+    description TEXT
 );
 
 -- Table: CATEGORY
@@ -123,10 +130,10 @@ CREATE TABLE reserved (
     idUser INTEGER,
     idTimeslot INTEGER,
     FOREIGN KEY (idUser) REFERENCES USER(idUser),
-    FOREIGN KEY (idTimeslot) REFERENCES AVAILABILITY(idTimeslot)
+    FOREIGN KEY (idTimeslot) REFERENCES timeslot(idTimeslot)
 );
 
-INSERT INTO timeslot (date, time, idService, reserved) VALUES 
+INSERT INTO timeslot (date, time, idService, reserved) VALUES
 ('2024-08-01', '09:00:00', 1, FALSE),
 ('2024-08-01', '10:00:00', 1, FALSE),
 ('2024-08-02', '11:00:00', 2, FALSE),
@@ -144,7 +151,7 @@ INSERT INTO USER(email, password, firstname, lastname, address, city, postalCode
 INSERT INTO USER(email, password, firstname, lastname, address, city, postalCode, country, phoneNumber, birthdate, isAdmin, isMerchant, isVolunteer) VALUES
  ('volunteer@a.com', '$2a$10$32tE9S9o16vHEBpG23ntbeAIPmoso8/3uOFcyUiY5R7clcKD5vWsG','Mathis', 'Boussard', '1 rue de la paix', 'Paris', '75000', 'France', '0606060606', '1999-06-06', FALSE,FALSE,TRUE);
 
- 
+
 INSERT INTO USER(email, password, firstname, lastname, address, city, postalCode, country, phoneNumber, birthdate, isAdmin, isMerchant, isVolunteer) VALUES
  ('admin@a.com', '$2a$10$32tE9S9o16vHEBpG23ntbeAIPmoso8/3uOFcyUiY5R7clcKD5vWsG','Mathis', 'Boussard', '1 rue de la paix', 'Paris', '75000', 'France', '0606060606', '1999-06-06', TRUE,FALSE,FALSE);
 

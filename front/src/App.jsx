@@ -16,6 +16,8 @@ import ServicesPage from './pages/servicesPage.jsx';
 import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
 import MerchantPage from './pages/merchantPage.jsx';
+import MerchantProductPage from './pages/merchantProductPage.jsx';
+import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import AdminPage from './pages/adminPage.jsx';
 import Layout from './layout.jsx';
 axios.defaults.baseURL = 'http://localhost:5000';
@@ -36,6 +38,8 @@ function App() {
           <Route path="/account/becomeVolunteer" element={<BecomeVolunteerPage />} />
 
           <Route path ='/account/merchant' element={<MerchantPage />} />
+          <Route path="/account/merchant/products" element={<MerchantProductPage />} />
+          <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
 
           <Route path="/account/admin" element={<AdminPage />} />
 

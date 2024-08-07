@@ -91,7 +91,7 @@ const CustomCalendar = () => {
     if (view === 'month') {
       const dateString = format(startOfDay(date), 'yyyy-MM-dd');
       const daySpots = spots[dateString] || 0;
-      return daySpots > 0 ? <div className="spots">{daySpots} SPOTS</div> : null;
+      return daySpots > 0 ? <div className="spots">{daySpots} Disponible</div> : null;
     }
     return null;
   };
@@ -108,11 +108,11 @@ const CustomCalendar = () => {
     <>
     <AccountNav/>
     <div className="CustomCalendar">
-      <h1>Reservation Calendar</h1>
+      <h1>Calendrier de Réservations</h1>
       <div>
-        <label>Select Service: </label>
+        <label>Sélectionnez un service: </label>
         <select onChange={handleServiceSelect}>
-          <option value="">Select a service</option>
+          <option value="">Sélection du service</option>
           {services.map(service => (
             <option key={service.idService} value={service.idService}>
               {service.name}
@@ -126,7 +126,7 @@ const CustomCalendar = () => {
         tileContent={tileContent}
         tileDisabled={tileDisabled}
       />
-      <h2>Available Slots on {format(date, 'EEE MMM dd yyyy')}</h2>
+      <h2>Créneaux disponible pour le {format(date, 'EEE MMM dd yyyy')}</h2>
       <ul>
         {slots.filter(slot => !slot.reserved).map((slot, index) => (
           <li key={index} onClick={() => handleSlotSelect(slot)}>
@@ -136,8 +136,8 @@ const CustomCalendar = () => {
       </ul>
       {selectedSlot && (
         <div>
-          <h3>Selected Slot: {selectedSlot.time}</h3>
-          <button onClick={handleReservation}>Reserve</button>
+          <h3>Créneau sélectionné: {selectedSlot.time}</h3>
+          <button onClick={handleReservation}>Réserver</button>
         </div>
       )}
     </div>

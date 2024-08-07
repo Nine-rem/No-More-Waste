@@ -311,6 +311,150 @@ app.get('/services', (req, res) => {
     });
   });
 
+
+  /*----------------------------------------------------
+
+  Produits
+
+---------------------------------------------------------- */
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ storage });
+
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.post('/upload', upload.single('image'), (req, res) => {
+  const photoId = `${Date.now()}-${req.file.originalname}`;
+  res.status(200).send({ photoId, path: `/uploads/${photoId}` });
+});
+
+app.post('/api/products', upload.array('images'), (req, res) => {
+  const { name, description, price, stock } = req.body;
+  const photoIds = req.files.map(file => file.filename);
+  const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+
+  // Debugging: Print received data
+  console.log("Received data:", { name, description, price, stock, photoIds, altDescriptions });
+
+  if (!name || !description || !price || !stock || !Array.isArray(photoIds) || photoIds.length === 0) {
+    return res.status(400).send({ error: 'Tous les champs sont requis' });
+  }
+
+  const insertProductQuery = 'INSERT INTO PRODUCT (name, reference) VALUES (?, ?)';
+  const reference = name.toLowerCase().replace(/\s+/g, '-');
+
+  connection.query(insertProductQuery, [name, reference], (err, productResult) => {
+    if (err) {
+      console.error('Erreur lors de l\'ajout du produit', err);
+      return res.status(500).send({ error: 'Erreur lors de l\'ajout du produit' });
+    }
+
+    const productId = productResult.insertId;
+
+    const updatePhotoQuery = 'INSERT INTO PHOTO (path, description) VALUES (?, ?)';
+    const insertPossessesQuery = 'INSERT INTO possesses (idPhoto, idProduct) VALUES (?, ?)';
+
+    photoIds.forEach((photoId, index) => {
+      const description = altDescriptions[index] || '';
+
+      connection.query(updatePhotoQuery, [photoId, description], (err, photoResult) => {
+        if (err) {
+          console.error('Erreur lors de l\'ajout de la photo', err);
+          return res.status(500).send({ error: 'Erreur lors de l\'ajout de la photo' });
+        }
+
+        const idPhoto = photoResult.insertId;
+
+        connection.query(insertPossessesQuery, [idPhoto, productId], (err) => {
+          if (err) {
+            console.error('Erreur lors de la création de la relation produit-photo', err);
+            return res.status(500).send({ error: 'Erreur lors de la création de la relation produit-photo' });
+          }
+        });
+      });
+    });
+
+    res.status(200).send({ message: 'Produit ajouté avec succès!' });
+  });
+});
+
+app.delete('/api/photos/:id', (req, res) => {
+  const photoId = req.params.id;
+
+  const getPhotoQuery = 'SELECT path FROM PHOTO WHERE idPhoto = ?';
+  const deletePhotoQuery = 'DELETE FROM PHOTO WHERE idPhoto = ?';
+
+  connection.query(getPhotoQuery, [photoId], (err, results) => {
+    if (err) {
+      console.error('Erreur lors de la récupération de la photo', err);
+      return res.status(500).send({ error: 'Erreur lors de la récupération de la photo' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).send({ error: 'Photo non trouvée' });
+    }
+
+    const photoPath = path.join(__dirname, 'uploads', results[0].path);
+
+    fs.unlink(photoPath, (err) => {
+      if (err) {
+        console.error('Erreur lors de la suppression du fichier', err);
+        return res.status(500).send({ error: 'Erreur lors de la suppression du fichier' });
+      }
+
+      connection.query(deletePhotoQuery, [photoId], (err) => {
+        if (err) {
+          console.error('Erreur lors de la suppression de la photo de la base de données', err);
+          return res.status(500).send({ error: 'Erreur lors de la suppression de la photo de la base de données' });
+        }
+
+        res.status(200).send({ message: 'Photo supprimée avec succès!' });
+      });
+    });
+  });
+});
+
+const cron = require('node-cron');
+
+// Tâche planifiée pour nettoyer les photos temporaires toutes les 24 heures
+cron.schedule('0 0 * * *', () => {
+  const deletePhotoQuery = 'SELECT idPhoto, path FROM PHOTO WHERE temporary = TRUE';
+
+  connection.query(deletePhotoQuery, (err, results) => {
+    if (err) {
+      console.error('Erreur lors de la récupération des photos temporaires', err);
+      return;
+    }
+
+    results.forEach(photo => {
+      const photoPath = path.join(__dirname, photo.path);
+
+      fs.unlink(photoPath, (err) => {
+        if (err) {
+          console.error('Erreur lors de la suppression du fichier temporaire', err);
+          return;
+        }
+
+        db.query('DELETE FROM PHOTO WHERE idPhoto = ?', [photo.idPhoto], (err) => {
+          if (err) {
+            console.error('Erreur lors de la suppression de la photo temporaire de la base de données', err);
+          }
+        });
+      });
+    });
+  });
+});
+
 /* ----------------------------------------------------------
       Démarrage du serveur
 ---------------------------------------------------------- */
