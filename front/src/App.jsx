@@ -19,6 +19,7 @@ import MerchantPage from './pages/merchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import AdminPage from './pages/adminPage.jsx';
+import UsersPage from './pages/usersPage.jsx';
 import Layout from './layout.jsx';
 axios.defaults.baseURL = 'http://localhost:5000';
 axios.defaults.withCredentials = true;
@@ -42,6 +43,7 @@ function App() {
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
 
           <Route path="/account/admin" element={<AdminPage />} />
+          <Route path="/account/admin/users" element={<UsersPage />} />
 
 
 

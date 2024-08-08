@@ -455,6 +455,44 @@ cron.schedule('0 0 * * *', () => {
   });
 });
 
+
+/*----------------------------------------------------
+  
+    Utilisateurs
+---------------------------------------------------------- */
+
+app.get('/users', (req, res) => {
+    const query = 'SELECT * FROM USER';
+    connection.query(query, (error, results) => {
+      if (error) throw error;
+      res.json(results);
+    });
+  }
+);
+
+
+app.patch('/users/:id/ban', (req, res) => {
+  const userId = req.params.id;
+  connection.query('SELECT banned FROM users WHERE id = ?', [userId], (err, results) => {
+      if (err) {
+          res.status(500).json({ message: err.message });
+          return;
+      }
+      if (results.length === 0) {
+          res.status(404).json({ message: 'User not found' });
+          return;
+      }
+
+      const newBanStatus = !results[0].banned;
+      connection.query('UPDATE users SET banned = ? WHERE id = ?', [newBanStatus, userId], (err) => {
+          if (err) {
+              res.status(500).json({ message: err.message });
+              return;
+          }
+          res.json({ id: userId, banned: newBanStatus });
+      });
+  });
+});
 /* ----------------------------------------------------------
       Démarrage du serveur
 ---------------------------------------------------------- */
