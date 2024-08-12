@@ -1,0 +1,4 @@
+back/db*
+back/node_modules
+back/uploads/
+front/package*
