@@ -21,11 +21,12 @@ import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
 import Layout from './layout.jsx';
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 axios.defaults.withCredentials = true;
 function App() {
   
   return (
+    
     <UserContextProvider>
       <Routes>
         <Route path="/" element={<Layout />}>
@@ -57,7 +58,7 @@ function App() {
       </Routes>
       </UserContextProvider>
 
-  );
+);
 }
 
 export default App;
