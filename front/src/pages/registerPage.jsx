@@ -55,10 +55,6 @@ export default function RegisterPage() {
         }
     }
 
-
-    const handleRoleChange = (event) => {
-        setRole(event.target.value);
-    }
     if (redirect) {
         return <Navigate to = {"/"} />;
     }

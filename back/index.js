@@ -125,53 +125,51 @@ app.post("/register", async (req, res) => {
 
 
 app.post('/login', async (req, res) => {
+  let { email, password } = req.body;
 
-let { email, password } = req.body;
+  // Nettoyage et validation de l'email
+  email = email.trim().toLowerCase();
+  const emailRegex = /\S+@\S+\.\S+/;
 
+  if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Email invalide' });
+  }
 
-email = email.trim().toLowerCase();
+  connection.query('SELECT idUser, email, password, isBanned FROM USER WHERE email = ?', [email], async (error, results) => {
+      if (error) {
+          return res.status(500).json({ message: 'Erreur de serveur' });
+      }
 
-const emailRegex = /\S+@\S+\.\S+/;
+      if (results.length === 0) {
+          return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+      }
 
+      const { idUser, password: hashedPassword, isBanned } = results[0];
 
-if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: 'Email invalide' });
-}
+      // Vérification du mot de passe
+      const isMatchingPassword = await bcrypt.compare(password, hashedPassword);
+      if (!isMatchingPassword) {
+          return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+      }
 
-connection.query('SELECT idUser, email, password FROM USER WHERE email = ?', [email], async (error, results) => {
-    if (error) {
-    return res.status(500).json({ message: 'Erreur de serveur' });
-    }
-    if (results.length === 0) {
-    return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
-    }
+      // Vérification si l'utilisateur est banni
+      if (isBanned) {
+          return res.status(403).json({ message: 'Impossible de se connecter, veuillez contacter le service client' });
+      }
 
-    const hashedPassword = results[0].password;
-    const isMatchingPassword = await bcrypt.compare(password, hashedPassword);
+      // Génération du token JWT
+      const token = jwt.sign({ userId: idUser, email }, secretKey, { expiresIn: '1h' });
+      res.cookie('token', token, { httpOnly: true });
 
-    if (!isMatchingPassword) {
-    return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
-    }
-    
-    const userId = results[0].idUser;
-    const email = results[0].email;
+      // Mise à jour du token dans la base de données
+      connection.query('UPDATE USER SET token = ? WHERE idUser = ?', [token, idUser], (updateError) => {
+          if (updateError) {
+              return res.status(500).json({ message: 'Erreur lors de la mise à jour du token' });
+          }
 
-    const token = jwt.sign({ userId,email }, secretKey, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true });
-
-    connection.query(
-    'UPDATE USER SET token = ? WHERE idUSER = ?',
-    [token, userId],
-    (updateError) => {
-        if (updateError) {
-        return res.status(500).json({ message: 'Erreur lors de la mise à jour du token' });
-        }
-        
-
-        res.json({ email, userId });
-    }
-    );
-});
+          res.json({ email, userId: idUser });
+      });
+  });
 });
 
 app.get('/account', async (req, res) => {
@@ -219,6 +217,111 @@ app.get('/mdp', (req, res) => {
       res.json({ hash });
     });
   });
+  app.get('/users/:id', (req, res) => {
+    const userId = req.params.id;
+    const query = 'SELECT firstname, lastname, DATE_FORMAT(birthdate, "%Y-%m-%d") as birthdate, address, city, postalCode, phoneNumber, email FROM USER WHERE idUSer = ?';
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la récupération de l\'utilisateur :', err);
+            return res.status(500).json({ error: 'Erreur de serveur' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        res.json(results[0]);
+    });
+});
+
+app.put('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  const { firstname, lastname, birthdate, address, city, postalCode, phoneNumber, email } = req.body;
+
+  // Validation des données
+  if (!firstname || !lastname || !birthdate || !address || !city || !postalCode || !phoneNumber || !email) {
+      return res.status(400).json({ error: 'Tous les champs sont requis.' });
+  }
+
+  // Nettoyage des données
+  const cleanFirstname = firstname.trim();
+  const cleanLastname = lastname.trim();
+  const cleanBirthdate = birthdate.trim();
+  const cleanAddress = address.trim();
+  const cleanCity = city.trim();
+  const cleanPostalCode = postalCode.trim();
+  const cleanPhoneNumber = phoneNumber.trim();
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Vérification de l'unicité de l'email
+  const checkEmailQuery = 'SELECT idUSer FROM USER WHERE email = ? AND idUser != ?';
+  connection.query(checkEmailQuery, [cleanEmail, userId], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la vérification de l\'email :', err);
+          return res.status(500).json({ error: 'Erreur de serveur' });
+      }
+
+      if (results.length > 0) {
+          return res.status(400).json({ error: 'Cet email est déjà utilisé par un autre utilisateur.' });
+      }
+
+      // Mise à jour de l'utilisateur
+      const updateUserQuery = `
+          UPDATE USER 
+          SET firstname = ?, lastname = ?, birthdate = ?, address = ?, city = ?, postalCode = ?, phoneNumber = ?, email = ?
+          WHERE idUser = ?
+      `;
+
+      connection.query(updateUserQuery, [cleanFirstname, cleanLastname, cleanBirthdate, cleanAddress, cleanCity, cleanPostalCode, cleanPhoneNumber, cleanEmail, userId], (err, results) => {
+          if (err) {
+              console.error('Erreur lors de la mise à jour de l\'utilisateur :', err);
+              return res.status(500).json({ error: 'Erreur de serveur' });
+          }
+
+          if (results.affectedRows === 0) {
+              return res.status(404).json({ error: 'Utilisateur non trouvé' });
+          }
+
+          res.json({ message: 'Utilisateur mis à jour avec succès' });
+      });
+  });
+});
+
+app.patch('/users/:id/ban', (req, res) => {
+  const userId = req.params.id;
+
+  // Vérifier si l'utilisateur existe
+  const checkUserQuery = 'SELECT isBanned FROM USER WHERE idUSer = ?';
+  connection.query(checkUserQuery, [userId], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la vérification de l\'utilisateur :', err);
+          return res.status(500).json({ error: 'Erreur de serveur' });
+      }
+
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      // Inverser l'état de isBanned
+      const isBanned = results[0].isBanned;
+      const newBanStatus = !isBanned;
+      const updateBanStatusQuery = 'UPDATE USER SET isBanned = ? WHERE idUser = ?';
+
+      connection.query(updateBanStatusQuery, [newBanStatus, userId], (err, updateResults) => {
+          if (err) {
+              console.error('Erreur lors de la mise à jour du statut de bannissement :', err);
+              return res.status(500).json({ error: 'Erreur de serveur' });
+          }
+
+          if (updateResults.affectedRows === 0) {
+              return res.status(404).json({ error: 'Impossible de mettre à jour le statut de bannissement' });
+          }
+
+          res.json({ message: 'Statut de bannissement mis à jour', isBanned: newBanStatus });
+      });
+  });
+});
 
 /* ----------------------------------------------------------
         Calendrier
@@ -445,7 +548,7 @@ cron.schedule('0 0 * * *', () => {
           return;
         }
 
-        db.query('DELETE FROM PHOTO WHERE idPhoto = ?', [photo.idPhoto], (err) => {
+        connection.query('DELETE FROM PHOTO WHERE idPhoto = ?', [photo.idPhoto], (err) => {
           if (err) {
             console.error('Erreur lors de la suppression de la photo temporaire de la base de données', err);
           }

@@ -20,11 +20,12 @@ import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
+import EditUserPage from './pages/editUserPage.jsx';
 import Layout from './layout.jsx';
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+axios.defaults.baseURL = 'http://localhost:5000';
+;
 axios.defaults.withCredentials = true;
 function App() {
-  
   return (
     
     <UserContextProvider>
@@ -45,7 +46,7 @@ function App() {
 
           <Route path="/account/admin" element={<AdminPage />} />
           <Route path="/account/admin/users" element={<UsersPage />} />
-
+          <Route path="account/admin/users/:id/edit" element={<EditUserPage/>} />
 
 
           <Route path="/quotation" element={<QuotationPage />} />

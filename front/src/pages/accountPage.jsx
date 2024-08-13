@@ -50,8 +50,10 @@ export default function ProfilePage() {
                     <div className='text-center max-w-lg mx-auto'>
                         Bonjour {user.firstname} {user.lastname} !<br />
                         <button onClick={handleLogout} type="button" className="btn btn-dark max-w-sm mt-2">Se déconnecter</button>
+                        <Link to='/account/edit'><button type="button" className="btn btn-dark max-w-sm mt-2">Modifier mon profil</button></Link>
                     </div>
                 )}
+
                 
             </div>
             {user && !isMerchant(user) && (
@@ -59,6 +61,7 @@ export default function ProfilePage() {
                     <Button variant="dark">Devenir Bénévole</Button>
                 </Link>
             )}
+
             
         </>
     );

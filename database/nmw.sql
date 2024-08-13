@@ -4,14 +4,16 @@ DROP TABLE IF EXISTS subscribe;
 DROP TABLE IF EXISTS belongs;
 DROP TABLE IF EXISTS addProduct;
 DROP TABLE IF EXISTS possesses;
+DROP TABLE IF EXISTS reserved;
+DROP TABLE IF EXISTS timeslot;
+
+
 DROP TABLE IF EXISTS SERVICE;
 DROP TABLE IF EXISTS SUBSCRIPTION;
 DROP TABLE IF EXISTS USER;
 DROP TABLE IF EXISTS CATEGORY;
 DROP TABLE IF EXISTS PRODUCT;
 DROP TABLE IF EXISTS PHOTO;
-DROP TABLE IF EXISTS reserved;
-DROP TABLE IF EXISTS timeslot;
 
 -- Table: PHOTO
 CREATE TABLE PHOTO (
@@ -20,8 +22,7 @@ CREATE TABLE PHOTO (
     path VARCHAR(255),
     description TEXT,
     idProduct INTEGER,
-    temporary BOOLEAN,
-    FOREIGN KEY (idProduct) REFERENCES PRODUCT(idProduct)
+    temporary BOOLEAN
 );
 
 -- Table: PRODUCT
@@ -56,7 +57,8 @@ CREATE TABLE USER (
     isAdmin BOOLEAN,
     isMerchant BOOLEAN,
     isVolunteer BOOLEAN,
-    token TEXT
+    token TEXT,
+    isBanned BOOLEAN
 );
 
 -- Table: SUBSCRIPTION
@@ -133,12 +135,6 @@ CREATE TABLE reserved (
     FOREIGN KEY (idTimeslot) REFERENCES timeslot(idTimeslot)
 );
 
-INSERT INTO timeslot (date, time, idService, reserved) VALUES
-('2024-08-01', '09:00:00', 1, FALSE),
-('2024-08-01', '10:00:00', 1, FALSE),
-('2024-08-02', '11:00:00', 2, FALSE),
-('2024-08-02', '14:00:00', 2, FALSE);
-
 
 INSERT INTO USER(email, password, firstname, lastname, address, city, postalCode, country, phoneNumber, birthdate, isAdmin, isMerchant, isVolunteer) VALUES
  ('a@a.com', '$2a$10$32tE9S9o16vHEBpG23ntbeAIPmoso8/3uOFcyUiY5R7clcKD5vWsG','Mathis', 'Boussard', '1 rue de la paix', 'Paris', '75000', 'France', '0606060606', '1999-06-06', TRUE,TRUE,TRUE);
@@ -172,4 +168,10 @@ INSERT INTO SERVICE(name) VALUES('Paysagiste');
 INSERT INTO SERVICE(name) VALUES('Architecte');
 
 INSERT INTO SERVICE(name) VALUES('Déménageur');
+
+INSERT INTO timeslot (date, time, idService, reserved) VALUES
+('2024-08-01', '09:00:00', 1, FALSE),
+('2024-08-01', '10:00:00', 1, FALSE),
+('2024-08-02', '11:00:00', 2, FALSE),
+('2024-08-02', '14:00:00', 2, FALSE);
 

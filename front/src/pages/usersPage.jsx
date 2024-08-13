@@ -1,9 +1,8 @@
 import React, { useContext, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import AccountNav from "../accountNav.jsx";
 import { UserContext } from "../userContext.jsx";
-import { Navigate } from "react-router-dom";
 import axios from "axios";
 
 function UsersPage() {
@@ -25,8 +24,9 @@ function UsersPage() {
     const handleBanUser = (userId) => {
         axios.patch(`/users/${userId}/ban`)
             .then(response => {
+                const updatedStatus = response.data.isBanned;
                 setUsers(users.map(user => 
-                    user.idUser === userId ? { ...user, banned: !user.banned } : user
+                    user.idUser === userId ? { ...user, isBanned: updatedStatus } : user
                 ));
             })
             .catch(error => {
@@ -65,14 +65,14 @@ function UsersPage() {
                             <td>{user.lastname}</td>
                             <td>{user.email}</td>
                             <td>
-                                <Link to={`/users/${user.idUser}/edit`}>
+                                <Link to={`/account/admin/users/${user.idUser}/edit`}>
                                     <Button variant="warning">Edit</Button>
                                 </Link>
                                 <Button 
-                                    variant={user.banned ? "success" : "danger"} 
+                                    variant={user.isBanned ? "success" : "danger"} 
                                     onClick={() => handleBanUser(user.idUser)}
                                 >
-                                    {user.banned ? "Unban" : "Ban"}
+                                    {user.isBanned ? "Unban" : "Ban"}
                                 </Button>
                             </td>
                         </tr>
