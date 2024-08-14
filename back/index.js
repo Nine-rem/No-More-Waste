@@ -202,7 +202,8 @@ app.get('/account', async (req, res) => {
         const isAdmin = results[0].isAdmin;
         const isMerchant = results[0].isMerchant;
         const isVolunteer = results[0].isVolunteer;
-        res.json({ email,firstname,lastname, isAdmin, isMerchant, isVolunteer });
+        const idUser = results[0].idUser;
+        res.json({ email,firstname,lastname, isAdmin, isMerchant, isVolunteer, idUser });
         }
     );
     });
@@ -361,58 +362,134 @@ app.get('/spots', (req, res) => {
 
     Réserver un créneau horaire
 ---------------------------------------------------------- */
-app.post('/reservations', (req, res) => {
-    const { token } = req.cookies; // Récupération du token depuis les cookies
+app.post('/api/users/:userId/timeslots/:idTimeslot/reserve', (req, res) => {
+  const userId = req.params.userId;
+  const idTimeslot = req.params.idTimeslot;
 
-    if (!token) {
-      return res.status(401).json({ message: 'Non authentifié' });
-    }
-  
-    jwt.verify(token, secretKey, (error, decoded) => {
-      if (error) {
-        return res.status(401).json({ message: 'Token invalide' });
-      }
-    const idUser = decoded.userId;
-    const {idTimeslot } = req.body;
-  
-    console.log('Received idUser:', idUser);  // Ajouter un console.log pour vérifier
-    console.log('Received idTimeslot:', idTimeslot);  // Ajouter un console.log pour vérifier
-    
-    if (!idUser || !idTimeslot) {
-      return res.status(400).send({ error: 'idUser and idTimeslot are required' });
-    }
-  
-    // Mise à jour de la disponibilité pour marquer le créneau comme réservé
-    const updateQuery = 'UPDATE timeslot SET reserved = TRUE WHERE idTimeslot = ?';
-    connection.query(updateQuery, [idTimeslot], (err, result) => {
-      if (err) {
-        console.error('Error updating availability:', err);
-        return res.status(500).send(err);
-      }
-  
-      // Ajout de l'entrée de réservation
-      const insertQuery = 'INSERT INTO reserved (idUser, idTimeslot) VALUES (?, ?)';
-      connection.query(insertQuery, [idUser, idTimeslot], (err, result) => {
-        if (err) {
-          console.error('Error inserting reservation:', err);
-          return res.status(500).send(err);
-        }
-        res.status(200).send({ message: 'Reservation successful!' });
-    });
+  const reserveQuery = 'INSERT INTO reserved (idUser, idTimeslot) VALUES (?, ?)';
+  const updateTimeslotQuery = 'UPDATE timeslot SET reserved = TRUE WHERE idTimeslot = ?';
+
+  connection.beginTransaction(error => {
+      if (error) return res.status(500).json({ message: 'Erreur de serveur' });
+
+      connection.query(reserveQuery, [userId, idTimeslot], (reserveError, reserveResults) => {
+          if (reserveError) {
+              return db.rollback(() => {
+                  console.error('Erreur lors de la réservation du créneau:', reserveError);
+                  return res.status(500).json({ message: 'Erreur lors de la réservation' });
+              });
+          }
+
+          connection.query(updateTimeslotQuery, [idTimeslot], (updateError, updateResults) => {
+              if (updateError) {
+                  return db.rollback(() => {
+                      console.error('Erreur lors de la mise à jour du créneau:', updateError);
+                      return res.status(500).json({ message: 'Erreur lors de la mise à jour du créneau' });
+                  });
+              }
+
+              connection.commit(commitError => {
+                  if (commitError) {
+                      return db.rollback(() => {
+                          console.error('Erreur lors de la finalisation de la transaction:', commitError);
+                          return res.status(500).json({ message: 'Erreur de serveur' });
+                      });
+                  }
+
+                  res.json({ message: 'Créneau réservé avec succès' });
+              });
+          });
+      });
+  });
 });
-});
-});
+
 /*----------------------------------------------------
 
   Services
 ---------------------------------------------------------- */
-app.get('/services', (req, res) => {
-    const query = 'SELECT * FROM SERVICE';
-    connection.query(query, (error, results) => {
-      if (error) throw error;
+// Route pour récupérer la liste des services
+app.get('/api/services', (req, res) => {
+  const query = 'SELECT idService, name FROM SERVICE';
+
+  connection.query(query, (error, results) => {
+      if (error) {
+          console.error('Erreur lors de la récupération des services:', error);
+          return res.status(500).json({ message: 'Erreur de serveur' });
+      }
+
       res.json(results);
-    });
   });
+});
+
+
+// Route pour récupérer les créneaux horaires disponibles pour un service à une date donnée
+app.get('/api/services/timeslots', (req, res) => {
+  const { date, idService } = req.query;
+
+  if (!date || !idService) {
+      return res.status(400).json({ message: 'La date et l\'ID du service sont requis.' });
+  }
+
+  const query = `
+      SELECT idTimeslot, date, time, reserved 
+      FROM timeslot 
+      WHERE date = ? AND idService = ? AND reserved = FALSE`;
+
+  connection.query(query, [date, idService], (error, results) => {
+      if (error) {
+          console.error('Erreur lors de la récupération des créneaux horaires:', error);
+          return res.status(500).json({ message: 'Erreur de serveur' });
+      }
+
+      res.json(results);
+  });
+});
+
+
+// Route pour réserver un créneau horaire
+app.post('/api/users/reserve', (req, res) => {
+  const { idUser, idTimeslot } = req.body;
+
+  if (!idUser || !idTimeslot) {
+      return res.status(400).json({ message: 'L\'ID de l\'utilisateur et l\'ID du créneau sont requis.' });
+  }
+
+  const reserveQuery = 'INSERT INTO reserved (idUser, idTimeslot) VALUES (?, ?)';
+  const updateTimeslotQuery = 'UPDATE timeslot SET reserved = TRUE WHERE idTimeslot = ?';
+
+  connection.beginTransaction(error => {
+      if (error) return res.status(500).json({ message: 'Erreur de serveur' });
+
+      connection.query(reserveQuery, [idUser, idTimeslot], (reserveError, reserveResults) => {
+          if (reserveError) {
+              return db.rollback(() => {
+                  console.error('Erreur lors de la réservation du créneau:', reserveError);
+                  return res.status(500).json({ message: 'Erreur lors de la réservation' });
+              });
+          }
+
+          connection.query(updateTimeslotQuery, [idTimeslot], (updateError, updateResults) => {
+              if (updateError) {
+                  return db.rollback(() => {
+                      console.error('Erreur lors de la mise à jour du créneau:', updateError);
+                      return res.status(500).json({ message: 'Erreur lors de la mise à jour du créneau' });
+                  });
+              }
+
+              connection.commit(commitError => {
+                  if (commitError) {
+                      return db.rollback(() => {
+                          console.error('Erreur lors de la finalisation de la transaction:', commitError);
+                          return res.status(500).json({ message: 'Erreur de serveur' });
+                      });
+                  }
+
+                  res.json({ message: 'Créneau réservé avec succès' });
+              });
+          });
+      });
+  });
+});
 
 
   /*----------------------------------------------------
@@ -424,70 +501,97 @@ app.get('/services', (req, res) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+      cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+      cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limite à 5MB
+  fileFilter: (req, file, cb) => {
+      const filetypes = /jpeg|jpg|png|gif/;
+      const mimetype = filetypes.test(file.mimetype);
+      const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+      if (mimetype && extname) {
+          return cb(null, true);
+      }
+      cb(new Error('Seuls les fichiers images sont autorisés'));
   }
 });
 
-const upload = multer({ storage });
 
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.post('/upload', upload.single('image'), (req, res) => {
-  const photoId = `${Date.now()}-${req.file.originalname}`;
-  res.status(200).send({ photoId, path: `/uploads/${photoId}` });
-});
-
-app.post('/api/products', upload.array('images'), (req, res) => {
-  const { name, description, price, stock } = req.body;
+app.post('/products', upload.array('images'), (req, res) => {
+  const { name, reference, stock, description } = req.body;
+  const token = req.cookies.token;
+  const decoded = jwt.verify(token, secretKey);
+  const idUser = decoded.userId;
   const photoIds = req.files.map(file => file.filename);
   const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
 
-  // Debugging: Print received data
-  console.log("Received data:", { name, description, price, stock, photoIds, altDescriptions });
-
-  if (!name || !description || !price || !stock || !Array.isArray(photoIds) || photoIds.length === 0) {
-    return res.status(400).send({ error: 'Tous les champs sont requis' });
+  if (!name || !Array.isArray(photoIds) || photoIds.length === 0) {
+      return res.status(400).send({ error: 'Le nom du produit et au moins une image sont requis' });
   }
 
-  const insertProductQuery = 'INSERT INTO PRODUCT (name, reference) VALUES (?, ?)';
-  const reference = name.toLowerCase().replace(/\s+/g, '-');
+  connection.beginTransaction(err => {
+      if (err) {
+          return res.status(500).send({ error: 'Erreur lors du démarrage de la transaction' });
+      }
 
-  connection.query(insertProductQuery, [name, reference], (err, productResult) => {
-    if (err) {
-      console.error('Erreur lors de l\'ajout du produit', err);
-      return res.status(500).send({ error: 'Erreur lors de l\'ajout du produit' });
-    }
+      const insertProductQuery = `
+          INSERT INTO PRODUCT (name, reference, stock, description, idUser)
+          VALUES (?, ?, ?, ?, ?)
+      `;
 
-    const productId = productResult.insertId;
-
-    const updatePhotoQuery = 'INSERT INTO PHOTO (path, description) VALUES (?, ?)';
-    const insertPossessesQuery = 'INSERT INTO possesses (idPhoto, idProduct) VALUES (?, ?)';
-
-    photoIds.forEach((photoId, index) => {
-      const description = altDescriptions[index] || '';
-
-      connection.query(updatePhotoQuery, [photoId, description], (err, photoResult) => {
-        if (err) {
-          console.error('Erreur lors de l\'ajout de la photo', err);
-          return res.status(500).send({ error: 'Erreur lors de l\'ajout de la photo' });
-        }
-
-        const idPhoto = photoResult.insertId;
-
-        connection.query(insertPossessesQuery, [idPhoto, productId], (err) => {
+      connection.query(insertProductQuery, [name, reference || null, stock || null, description || null, idUser], (err, productResult) => {
           if (err) {
-            console.error('Erreur lors de la création de la relation produit-photo', err);
-            return res.status(500).send({ error: 'Erreur lors de la création de la relation produit-photo' });
+              return connection.rollback(() => {
+                  res.status(500).send({ error: 'Erreur lors de l\'ajout du produit' });
+              });
           }
-        });
-      });
-    });
 
-    res.status(200).send({ message: 'Produit ajouté avec succès!' });
+          const productId = productResult.insertId;
+
+          const insertPhotoQuery = `
+              INSERT INTO PHOTO (name, path, description, idProduct, temporary)
+              VALUES (?, ?, ?, ?, ?)
+          `;
+
+          const insertPhotos = photoIds.map((photoId, index) => {
+              return new Promise((resolve, reject) => {
+                  const photoName = req.files[index].originalname;
+                  const description = altDescriptions[index] || '';
+                  const temporary = false;
+
+                  connection.query(insertPhotoQuery, [photoName, photoId, description, productId, temporary], (err) => {
+                      if (err) {
+                          return reject(err);
+                      }
+                      resolve();
+                  });
+              });
+          });
+
+          Promise.all(insertPhotos)
+              .then(() => {
+                  connection.commit(err => {
+                      if (err) {
+                          return connection.rollback(() => {
+                              res.status(500).send({ error: 'Erreur lors de la validation de la transaction' });
+                          });
+                      }
+                      res.status(200).send({ message: 'Produit ajouté avec succès!' });
+                  });
+              })
+              .catch(err => {
+                  connection.rollback(() => {
+                      res.status(500).send({ error: 'Erreur lors de l\'ajout des photos' });
+                  });
+              });
+      });
   });
 });
 
@@ -526,6 +630,97 @@ app.delete('/api/photos/:id', (req, res) => {
     });
   });
 });
+
+app.get('/users/:idUser/products', (req, res) => {
+  const idUser = req.params.idUser;
+
+  const query = `
+      SELECT p.*, ph.idPhoto, ph.path AS photoPath
+      FROM PRODUCT p
+      LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+      WHERE p.idUser = ?
+  `;
+
+  connection.query(query, [idUser], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération des produits', err);
+          return res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
+      }
+
+      const products = {};
+
+      results.forEach(row => {
+          if (!products[row.idProduct]) {
+              products[row.idProduct] = {
+                  idProduct: row.idProduct,
+                  name: row.name,
+                  reference: row.reference,
+                  stock: row.stock,
+                  description: row.description,
+                  photos: []
+              };
+          }
+
+          if (row.photoPath) {
+              products[row.idProduct].photos.push({
+                  idPhoto: row.idPhoto,
+                  fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+              });
+          }
+      });
+
+      res.json(Object.values(products));
+  });
+});
+
+
+
+app.put('/users/:userId/products/:productId', (req, res) => {
+  const userId = req.params.userId;
+  const productId = req.params.productId;
+  const { name, reference, price, stock, description } = req.body;
+
+  if (!name || !reference || !price || stock == null) {
+      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+  }
+
+  const query = 'UPDATE PRODUCT SET name = ?, reference = ?, price = ?, stock = ?, description = ? WHERE idProduct = ? AND idUser = ?';
+  connection.query(query, [name, reference, price, stock, description, productId, userId], (error, results) => {
+      if (error) {
+          console.error('Erreur lors de la mise à jour du produit:', error);
+          if (error.code === 'ER_DUP_ENTRY') {
+              return res.status(400).json({ message: 'La référence du produit doit être unique.' });
+          }
+          return res.status(500).json({ message: 'Erreur de serveur' });
+      }
+
+      if (results.affectedRows === 0) {
+          return res.status(404).json({ message: 'Produit non trouvé ou non associé à cet utilisateur' });
+      }
+
+      res.json({ message: 'Produit mis à jour avec succès' });
+  });
+});
+
+app.get('/users/:userId/services', (req, res) => {
+  const userId = req.params.userId;
+
+  const query = `
+      SELECT SERVICE.name 
+      FROM SERVICE 
+      JOIN propose ON SERVICE.idService = propose.idService 
+      WHERE propose.idUser = ?`;
+  connection.query(query, [userId], (error, results) => {
+      if (error) {
+          console.error('Erreur lors de la récupération des services:', error);
+          return res.status(500).json({ message: 'Erreur de serveur' });
+      }
+      res.json(results);
+  });
+});
+
+
+
 
 const cron = require('node-cron');
 

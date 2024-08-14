@@ -1,18 +1,86 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { Button } from "react-bootstrap";
-import AccountNav from "../accountNav.jsx";
+import React, { useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import { UserContext } from '../userContext';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
+import '../style/merchantProductPage.css';  // Assurez-vous de créer un fichier CSS pour les styles spécifiques
 
-function merchantProductPage() {
+function MerchantProductPage() {
+    const { user, ready } = useContext(UserContext);
+    const [products, setProducts] = useState([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (ready && user) {
+            axios.get(`/users/${user.idUser}/products`)
+                .then(response => {
+                    setProducts(response.data);
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des produits:", error);
+                });
+        }
+    }, [ready, user]);
+
+    if (!ready) {
+        return <div>Chargement...</div>;
+    }
+
+    if (!user) {
+        return <Navigate to="/login" />;
+    }
+
+    const handleCardClick = (productId) => {
+        navigate(`/account/merchant/editProduct/${productId}`);
+    };
+
     return (
-        <div>
-            <AccountNav/>
-            <h1>Merchant</h1>
-            <p>Vous pouvez consulter ici vos produits</p>
-
-        
-        </div>
+        <Container>
+            <Row className="my-4">
+                <Col>
+                    <h1>Vos Produits</h1>
+                    <p>Voici la liste de vos produits avec les détails correspondants.</p>
+                </Col>
+            </Row>
+            <Row className="product-grid">
+                {products.length > 0 ? (
+                    products.map((product) => (
+                        <Col key={product.idProduct} sm={12} md={6} lg={4} className="mb-4">
+                            <Card className="product-card" onClick={() => handleCardClick(product.idProduct)}>
+                                {product.photos && product.photos.length > 0 ? (
+                                    <Card.Img variant="top" src={product.photos[0].fullPath} alt={product.name} />
+                                ) : (
+                                    <div className="no-image-placeholder">Aucune image</div>
+                                )}
+                                <Card.Body>
+                                    <Card.Title>{product.name}</Card.Title>
+                                    <Card.Text>
+                                        {product.reference}<br />
+                                        {product.stock} en stock
+                                    </Card.Text>
+                                    <Button variant="primary">Modifier le Produit</Button>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    ))
+                ) : (
+                    <Col>
+                        <Card>
+                            <Card.Body>
+                                <Card.Title>Aucun produit trouvé</Card.Title>
+                                <Card.Text>
+                                    Il semble que vous n'ayez pas encore ajouté de produits. Commencez à en ajouter pour les voir ici.
+                                </Card.Text>
+                                <Link to="/account/merchant/addProduct">
+                                    <Button variant="primary">Ajouter un Produit</Button>
+                                </Link>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                )}
+            </Row>
+        </Container>
     );
 }
 
-export default merchantProductPage;
+export default MerchantProductPage;

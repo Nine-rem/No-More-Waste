@@ -1,24 +1,32 @@
-import {React, useState, useEffect} from 'react';
-import axios from 'axios';
+import { React, useContext } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import AccountNav from '../accountNav';
-import { Link } from 'react-router-dom';
 import { UserContext } from '../userContext'; 
-import { useContext } from 'react';
 import { Button } from 'react-bootstrap';
 
-function adminPage() {
-    const { user } = useContext(UserContext);
+function AdminPage() {
+    const { user, ready } = useContext(UserContext);
+
+    // Si les données ne sont pas encore prêtes, affichez un message de chargement
+    if (!ready) {
+        return <div>Loading...</div>;
+    }
+
+    // Si l'utilisateur n'est pas connecté ou que isAdmin est null/false, rediriger
+    if (!user || user.isAdmin !== 1) {
+        return <Navigate to="/404/" />;
+    }
 
     return (
         <div>
-            <AccountNav/>
+            <AccountNav />
             <h1>Admin</h1>
             <p>Vous pouvez consulter ici les informations des utilisateurs</p>
             <Link to="/account/admin/users">
-            <Button variant="primary">Liste des utilisateurs</Button>
+                <Button variant="primary">Liste des utilisateurs</Button>
             </Link>
         </div>
     );
 }
 
-export default adminPage;
+export default AdminPage;

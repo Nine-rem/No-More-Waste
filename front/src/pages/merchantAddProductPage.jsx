@@ -1,25 +1,29 @@
 import React, { useState, useContext } from "react";
-import { Button, Form } from "react-bootstrap";
+import { Button, Form, Alert } from "react-bootstrap";
 import axios from "axios";
-import { UserContext } from "../userContext.jsx";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import "../style/merchantAddProductPage.css";
+import { UserContext } from "../userContext.jsx";
+
 function MerchantAddProductPage() {
     const [productData, setProductData] = useState({
         name: "",
+        reference: "",
         description: "",
-        price: "",
         stock: "",
         images: []
     });
 
     const { user } = useContext(UserContext);
-    if (!user) {
+    if (!user || !user.idUser) {
         return <Navigate to="/login" />;
+        console.log(user, user.idUser);
     }
 
     const [previewImages, setPreviewImages] = useState([]);
     const [altDescriptions, setAltDescriptions] = useState({});
+    const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -42,51 +46,63 @@ function MerchantAddProductPage() {
         const updatedImages = [...productData.images];
         const updatedPreviews = [...previewImages];
 
+        URL.revokeObjectURL(updatedPreviews[index]); // Libère la mémoire
+
         updatedImages.splice(index, 1);
         updatedPreviews.splice(index, 1);
 
         setProductData({ ...productData, images: updatedImages });
         setPreviewImages(updatedPreviews);
     };
+        const handleRowClick = (productId) => {
+        navigate(`/account/merchant/editProduct/${productId}`);
+    };
+    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Réinitialiser les messages d'erreur et de succès
+        setErrorMessage("");
+        setSuccessMessage("");
+
         const formData = new FormData();
         formData.append("name", productData.name);
-        formData.append("description", productData.description);
-        formData.append("price", productData.price);
-        formData.append("stock", productData.stock);
+        formData.append("reference", productData.reference || "");
+        formData.append("stock", productData.stock || "");
+        formData.append("description", productData.description || "");
 
         productData.images.forEach((image, index) => {
             formData.append("images", image);
             formData.append("altDescriptions", altDescriptions[index] || "");
         });
 
-        // Debug: Log FormData content
-        for (let pair of formData.entries()) {
-            console.log(`${pair[0]}: ${pair[1]}`);
-        }
-
         try {
-            await axios.post("/api/products", formData, {
+            const response = await axios.post(`/products`, formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data"
-                }
+                    "Content-Type": "multipart/form-data",
+                },
+                withCredentials: true // Inclut les cookies avec la requête
             });
-            alert("Produit ajouté avec succès !");
+
+            setSuccessMessage(response.data.message);
             setProductData({
                 name: "",
+                reference: "",
                 description: "",
-                price: "",
                 stock: "",
                 images: []
             });
             setPreviewImages([]);
             setAltDescriptions({});
         } catch (error) {
-            console.error("Erreur lors de l'ajout du produit", error);
-            alert("Erreur lors de l'ajout du produit");
+            if (error.response && error.response.status === 401) {
+                setErrorMessage("Authentification échouée. Veuillez vous reconnecter.");
+            } else if (error.response && error.response.data && error.response.data.error) {
+                setErrorMessage(error.response.data.error);
+            } else {
+                setErrorMessage("Erreur lors de l'ajout du produit");
+            }
         }
     };
 
@@ -97,6 +113,8 @@ function MerchantAddProductPage() {
     return (
         <div>
             <h1>Ajouter un produit</h1>
+            {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+            {successMessage && <Alert variant="success">{successMessage}</Alert>}
             <Form onSubmit={handleSubmit}>
                 <Form.Group controlId="formProductName">
                     <Form.Label>Nom du produit</Form.Label>
@@ -109,6 +127,16 @@ function MerchantAddProductPage() {
                     />
                 </Form.Group>
 
+                <Form.Group controlId="formProductReference">
+                    <Form.Label>Référence</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="reference"
+                        value={productData.reference}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
                 <Form.Group controlId="formProductDescription">
                     <Form.Label>Description</Form.Label>
                     <Form.Control
@@ -116,18 +144,6 @@ function MerchantAddProductPage() {
                         name="description"
                         value={productData.description}
                         onChange={handleChange}
-                        required
-                    />
-                </Form.Group>
-
-                <Form.Group controlId="formProductPrice">
-                    <Form.Label>Prix</Form.Label>
-                    <Form.Control
-                        type="number"
-                        name="price"
-                        value={productData.price}
-                        onChange={handleChange}
-                        required
                     />
                 </Form.Group>
 
@@ -138,7 +154,6 @@ function MerchantAddProductPage() {
                         name="stock"
                         value={productData.stock}
                         onChange={handleChange}
-                        required
                     />
                 </Form.Group>
 

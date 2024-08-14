@@ -19,10 +19,10 @@ const CustomCalendar = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await axios.get('/services');
+        const response = await axios.get('/api/services'); // Mise à jour de l'URL
         setServices(response.data);
       } catch (error) {
-        console.error('Error fetching services', error);
+        console.error('Erreur lors de la récupération des services', error);
       }
     };
     fetchServices();
@@ -32,24 +32,24 @@ const CustomCalendar = () => {
     if (selectedService) {
       const fetchSlots = async () => {
         try {
-          const response = await axios.get('/timeslots', {
+          const response = await axios.get('/api/services/timeslots', { // Mise à jour de l'URL
             params: { date: format(startOfDay(date), 'yyyy-MM-dd'), idService: selectedService }
           });
           setSlots(response.data);
         } catch (error) {
-          console.error('Error fetching slots', error);
+          console.error('Erreur lors de la récupération des créneaux horaires', error);
         }
       };
       fetchSlots();
 
       const fetchSpots = async () => {
         try {
-          const response = await axios.get('/spots', {
+          const response = await axios.get('/api/services/spots', { // Mise à jour de l'URL
             params: { month: date.getMonth() + 1, year: date.getFullYear(), idService: selectedService }
           });
           setSpots(response.data);
         } catch (error) {
-          console.error('Error fetching spots', error);
+          console.error('Erreur lors de la récupération des disponibilités', error);
         }
       };
       fetchSpots();
@@ -71,19 +71,20 @@ const CustomCalendar = () => {
   };
 
   const handleReservation = async () => {
-    if (user && selectedSlot) { // Vérifier si l'utilisateur et le créneau sélectionné sont définis
-      console.log('user.idUser:', user.idUser);  // Ajouter un console.log pour vérifier
-      console.log('selectedSlot.idTimeslot:', selectedSlot.idTimeslot);  // Ajouter un console.log pour vérifier
+    if (user && selectedSlot) {
       try {
-        await axios.post('/reservations', { idUser: user.idUser, idTimeslot: selectedSlot.idTimeslot });
-        alert('Reservation successful!');
+        await axios.post('/api/users/reserve', { // Mise à jour de l'URL
+          idUser: user.idUser, 
+          idTimeslot: selectedSlot.idTimeslot 
+        });
+        alert('Réservation réussie !');
         setSlots(slots.map(slot => slot.idTimeslot === selectedSlot.idTimeslot ? { ...slot, reserved: true } : slot));
         setSelectedSlot(null);
       } catch (error) {
-        console.error('Error making reservation', error);
+        console.error('Erreur lors de la réservation', error);
       }
     } else {
-      alert('Please log in and select a timeslot to make a reservation');
+      alert('Veuillez vous connecter et sélectionner un créneau pour faire une réservation');
     }
   };
 

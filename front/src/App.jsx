@@ -15,12 +15,17 @@ import AccountPage from './pages/accountPage.jsx';
 import ServicesPage from './pages/servicesPage.jsx';
 import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
+
 import MerchantPage from './pages/merchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
+import EditProductPage from './pages/editProductPage.jsx';
+
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
 import EditUserPage from './pages/editUserPage.jsx';
+
+import NotFoundPage from './pages/notFoundPage.jsx';
 import Layout from './layout.jsx';
 axios.defaults.baseURL = 'http://localhost:5000';
 ;
@@ -43,6 +48,8 @@ function App() {
           <Route path ='/account/merchant' element={<MerchantPage />} />
           <Route path="/account/merchant/products" element={<MerchantProductPage />} />
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
+          <Route path="/account/merchant/editProduct/:productId" element={<EditProductPage />} />
+
 
           <Route path="/account/admin" element={<AdminPage />} />
           <Route path="/account/admin/users" element={<UsersPage />} />
@@ -55,6 +62,8 @@ function App() {
           <Route path="/serviceTerms" element={<ServiceTermsPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path='calendar' element={<CalendarPage />} />
+
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
       </UserContextProvider>

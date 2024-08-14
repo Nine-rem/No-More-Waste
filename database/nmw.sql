@@ -2,7 +2,6 @@
 DROP TABLE IF EXISTS propose;
 DROP TABLE IF EXISTS subscribe;
 DROP TABLE IF EXISTS belongs;
-DROP TABLE IF EXISTS addProduct;
 DROP TABLE IF EXISTS possesses;
 DROP TABLE IF EXISTS reserved;
 DROP TABLE IF EXISTS timeslot;
@@ -30,9 +29,10 @@ CREATE TABLE PRODUCT (
     idProduct INTEGER AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
     reference VARCHAR(255),
-    price DECIMAL(10, 2),
     stock INTEGER,
-    description TEXT
+    description TEXT,
+    idUser INTEGER,
+    idUser REFERENCES USER(idUser)
 );
 
 -- Table: CATEGORY
@@ -82,14 +82,7 @@ CREATE TABLE possesses (
     FOREIGN KEY (idProduct) REFERENCES PRODUCT(idProduct)
 );
 
--- Table: add (Many-to-Many relationship between PRODUCT and USER)
-CREATE TABLE addProduct (
-    idProduct INTEGER,
-    idUser INTEGER,
-    PRIMARY KEY (idProduct, idUser),
-    FOREIGN KEY (idProduct) REFERENCES PRODUCT(idProduct),
-    FOREIGN KEY (idUser) REFERENCES USER(idUser)
-);
+
 
 -- Table: belongs (Many-to-Many relationship between PRODUCT and CATEGORY)
 CREATE TABLE belongs (

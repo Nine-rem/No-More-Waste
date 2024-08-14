@@ -1,0 +1,30 @@
+.product-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.product-card {
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+    border: none;
+}
+
+.product-card:hover {
+    transform: scale(1.05);
+}
+
+.product-card img {
+    object-fit: cover;
+    height: 200px;
+}
+
+.no-image-placeholder {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    color: #777;
+    font-size: 1.2rem;
+}
