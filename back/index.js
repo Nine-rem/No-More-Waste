@@ -532,8 +532,8 @@ app.post('/products', upload.array('images'), (req, res) => {
   const photoIds = req.files.map(file => file.filename);
   const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
 
-  if (!name || !Array.isArray(photoIds) || photoIds.length === 0) {
-      return res.status(400).send({ error: 'Le nom du produit et au moins une image sont requis' });
+  if (!Array.isArray(photoIds) || photoIds.length === 0, !name, !reference, !stock, !description) {
+      return res.status(400).send({ error: ' Tous les champs sont requis' });
   }
 
   connection.beginTransaction(err => {
@@ -595,41 +595,6 @@ app.post('/products', upload.array('images'), (req, res) => {
   });
 });
 
-app.delete('/api/photos/:id', (req, res) => {
-  const photoId = req.params.id;
-
-  const getPhotoQuery = 'SELECT path FROM PHOTO WHERE idPhoto = ?';
-  const deletePhotoQuery = 'DELETE FROM PHOTO WHERE idPhoto = ?';
-
-  connection.query(getPhotoQuery, [photoId], (err, results) => {
-    if (err) {
-      console.error('Erreur lors de la récupération de la photo', err);
-      return res.status(500).send({ error: 'Erreur lors de la récupération de la photo' });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).send({ error: 'Photo non trouvée' });
-    }
-
-    const photoPath = path.join(__dirname, 'uploads', results[0].path);
-
-    fs.unlink(photoPath, (err) => {
-      if (err) {
-        console.error('Erreur lors de la suppression du fichier', err);
-        return res.status(500).send({ error: 'Erreur lors de la suppression du fichier' });
-      }
-
-      connection.query(deletePhotoQuery, [photoId], (err) => {
-        if (err) {
-          console.error('Erreur lors de la suppression de la photo de la base de données', err);
-          return res.status(500).send({ error: 'Erreur lors de la suppression de la photo de la base de données' });
-        }
-
-        res.status(200).send({ message: 'Photo supprimée avec succès!' });
-      });
-    });
-  });
-});
 
 app.get('/users/:idUser/products', (req, res) => {
   const idUser = req.params.idUser;
@@ -673,34 +638,185 @@ app.get('/users/:idUser/products', (req, res) => {
   });
 });
 
+app.get('/users/:userId/products/:productId', (req, res) => {
+  const { userId, productId } = req.params;
+
+  const productQuery = `
+      SELECT p.idProduct, p.name, p.reference, p.stock, p.description, ph.idPhoto, ph.path, ph.description as photoDescription
+      FROM PRODUCT p
+      LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+      WHERE p.idProduct = ? AND p.idUser = ?
+  `;
+
+  connection.query(productQuery, [productId, userId], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération du produit:', err);
+          return res.status(500).json({ error: 'Erreur serveur' });
+      }
+
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'Produit non trouvé ou non autorisé' });
+      }
+
+      const product = {
+          idProduct: results[0].idProduct,
+          name: results[0].name,
+          reference: results[0].reference,
+          stock: results[0].stock,
+          description: results[0].description
+      };
+    
+
+      res.json(product);
+  });
+});
+
+app.get('/products/:productId/photos', (req, res) => {
+  const { productId } = req.params;
+  
+  const getPhotosQuery = `
+      SELECT idPhoto, path, description
+      FROM PHOTO
+      WHERE idProduct = ?
+  `;
+
+  connection.query(getPhotosQuery, [productId], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération des photos:', err);
+          return res.status(500).json({ error: 'Erreur serveur' });
+      }
+
+      const photos = results.map(photo => ({
+          idPhoto: photo.idPhoto,
+          fullPath: `${req.protocol}://${req.get('host')}/uploads/${photo.path}`,
+          description: photo.description
+      }));
+
+      res.json(photos);
+  });
+});
 
 
-app.put('/users/:userId/products/:productId', (req, res) => {
-  const userId = req.params.userId;
+app.delete('/photos/:photoId', (req, res) => {
+  const { photoId } = req.params;
+  const token = req.cookies.token; 
+  const decoded = jwt.verify(token, secretKey);
+  const userId = decoded.userId;
+
+
+  // Requête pour obtenir le chemin de la photo et vérifier qu'elle appartient à un produit de l'utilisateur
+  const getPhotoQuery = `
+      SELECT ph.path, p.idUser
+      FROM PHOTO ph
+      JOIN PRODUCT p ON ph.idProduct = p.idProduct
+      WHERE ph.idPhoto = ? AND p.idUser = ?
+  `;
+
+  connection.query(getPhotoQuery, [photoId, userId], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération de la photo:', err);
+          return res.status(500).json({ error: 'Erreur serveur' });
+      }
+
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'Photo non trouvée ou non autorisée' });
+      }
+
+      const photoPath = path.join(__dirname, 'uploads', results[0].path);
+
+      // Suppression du fichier physique
+      fs.unlink(photoPath, (err) => {
+          if (err) {
+              console.error('Erreur lors de la suppression du fichier:', err);
+              return res.status(500).json({ error: 'Erreur lors de la suppression du fichier' });
+          }
+
+          // Suppression de l'entrée de la photo dans la base de données
+          const deletePhotoQuery = `
+              DELETE FROM PHOTO
+              WHERE idPhoto = ?
+          `;
+
+          connection.query(deletePhotoQuery, [photoId], (err) => {
+              if (err) {
+                  console.error('Erreur lors de la suppression de la photo de la base de données:', err);
+                  return res.status(500).json({ error: 'Erreur lors de la suppression de la photo de la base de données' });
+              }
+
+              res.json({ message: 'Photo supprimée avec succès' });
+          });
+      });
+  });
+});
+
+
+app.put('/products/:productId', upload.array('images'), (req, res) => {
   const productId = req.params.productId;
-  const { name, reference, price, stock, description } = req.body;
+  const { name, reference, stock, description } = req.body;
+  const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
 
-  if (!name || !reference || !price || stock == null) {
-      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+  console.log("Body:", req.body);
+  console.log("Files:", req.files);
+  console.log("Params:", req.params);
+
+    // Vérification que tous les champs requis sont présents
+  if (!name || !reference || !stock || !description) {
+    return res.status(400).send({ error: 'Tous les champs sont requis.' });
+    }
+
+  // Vérification de la présence et de la validité des fichiers
+  if (!req.files || req.files.length === 0 || req.files.some(file => file.size === 0)) {
+      console.error("Aucun fichier valide n'a été téléchargé.");
+      return res.status(400).send({ error: 'Aucun fichier valide n\'a été téléchargé.' });
   }
 
-  const query = 'UPDATE PRODUCT SET name = ?, reference = ?, price = ?, stock = ?, description = ? WHERE idProduct = ? AND idUser = ?';
-  connection.query(query, [name, reference, price, stock, description, productId, userId], (error, results) => {
+  // Mise à jour des informations du produit
+  const query = 'UPDATE PRODUCT SET name = ?, reference = ?, stock = ?, description = ? WHERE idProduct = ?';
+  connection.query(query, [name, reference, stock, description, productId], (error, results) => {
       if (error) {
           console.error('Erreur lors de la mise à jour du produit:', error);
-          if (error.code === 'ER_DUP_ENTRY') {
-              return res.status(400).json({ message: 'La référence du produit doit être unique.' });
-          }
           return res.status(500).json({ message: 'Erreur de serveur' });
       }
 
       if (results.affectedRows === 0) {
-          return res.status(404).json({ message: 'Produit non trouvé ou non associé à cet utilisateur' });
+          return res.status(404).json({ message: 'Produit non trouvé' });
       }
 
-      res.json({ message: 'Produit mis à jour avec succès' });
+      // Gestion des nouvelles photos
+      if (req.files && req.files.length > 0) {
+          const insertPhotoQuery = `
+              INSERT INTO PHOTO (idProduct, path, description, temporary)
+              VALUES (?, ?, ?, ?)
+          `;
+
+          const photoInserts = req.files.map((file, index) => {
+              return new Promise((resolve, reject) => {
+                  // Insertion de la photo si elle n'est pas vide (taille > 0)
+                  connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
+                      if (err) {
+                          reject(err);
+                      } else {
+                          resolve();
+                      }
+                  });
+              });
+          });
+
+          Promise.all(photoInserts)
+              .then(() => {
+                  res.json({ message: 'Produit mis à jour avec succès, y compris les nouvelles photos.' });
+              })
+              .catch(err => {
+                  console.error('Erreur lors de l\'ajout des nouvelles photos:', err);
+                  res.status(500).json({ message: 'Erreur lors de l\'ajout des nouvelles photos' });
+              });
+      } else {
+          res.json({ message: 'Produit mis à jour avec succès.' });
+      }
   });
 });
+
+
 
 app.get('/users/:userId/services', (req, res) => {
   const userId = req.params.userId;

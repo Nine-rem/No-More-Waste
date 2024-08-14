@@ -19,7 +19,7 @@ import CalendarPage from './pages/customCalendar.jsx';
 import MerchantPage from './pages/merchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
-import EditProductPage from './pages/editProductPage.jsx';
+import MerchantEditProductPage from './pages/merchantEditProductPage.jsx';
 
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
@@ -48,7 +48,7 @@ function App() {
           <Route path ='/account/merchant' element={<MerchantPage />} />
           <Route path="/account/merchant/products" element={<MerchantProductPage />} />
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
-          <Route path="/account/merchant/editProduct/:productId" element={<EditProductPage />} />
+          <Route path="/account/merchant/editProduct/:productId" element={<MerchantEditProductPage />} />
 
 
           <Route path="/account/admin" element={<AdminPage />} />

@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
-import { Button, Form, Alert } from "react-bootstrap";
+import { Button, Form, Alert, Col, Row, Card } from "react-bootstrap";
 import axios from "axios";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import "../style/merchantAddProductPage.css";
 import { UserContext } from "../userContext.jsx";
 
@@ -15,15 +15,14 @@ function MerchantAddProductPage() {
     });
 
     const { user } = useContext(UserContext);
-    if (!user || !user.idUser) {
-        return <Navigate to="/login" />;
-        console.log(user, user.idUser);
-    }
-
     const [previewImages, setPreviewImages] = useState([]);
     const [altDescriptions, setAltDescriptions] = useState({});
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+
+    if (!user || !user.idUser) {
+        return <Navigate to="/login" />;
+    }
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -46,7 +45,7 @@ function MerchantAddProductPage() {
         const updatedImages = [...productData.images];
         const updatedPreviews = [...previewImages];
 
-        URL.revokeObjectURL(updatedPreviews[index]); // Libère la mémoire
+        URL.revokeObjectURL(updatedPreviews[index]);
 
         updatedImages.splice(index, 1);
         updatedPreviews.splice(index, 1);
@@ -54,15 +53,10 @@ function MerchantAddProductPage() {
         setProductData({ ...productData, images: updatedImages });
         setPreviewImages(updatedPreviews);
     };
-        const handleRowClick = (productId) => {
-        navigate(`/account/merchant/editProduct/${productId}`);
-    };
-    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Réinitialiser les messages d'erreur et de succès
         setErrorMessage("");
         setSuccessMessage("");
 
@@ -82,7 +76,7 @@ function MerchantAddProductPage() {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
-                withCredentials: true // Inclut les cookies avec la requête
+                withCredentials: true
             });
 
             setSuccessMessage(response.data.message);
@@ -111,7 +105,7 @@ function MerchantAddProductPage() {
     };
 
     return (
-        <div>
+        <div className="product-page">
             <h1>Ajouter un produit</h1>
             {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
             {successMessage && <Alert variant="success">{successMessage}</Alert>}
@@ -159,10 +153,11 @@ function MerchantAddProductPage() {
 
                 <Form.Group controlId="formProductImages">
                     <Form.Label>Images</Form.Label>
-                    <div onClick={handleImageUploadClick} style={{ cursor: "pointer" }}>
+                    <div onClick={handleImageUploadClick} className="image-upload-placeholder">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
                         </svg>
+                        <span>Ajouter des images</span>
                     </div>
                     <Form.Control
                         type="file"
@@ -174,20 +169,24 @@ function MerchantAddProductPage() {
                     />
                 </Form.Group>
 
-                <div className="image-previews">
+                <Row className="image-previews">
                     {previewImages.map((src, index) => (
-                        <div key={index} className="preview-container">
-                            <img src={src} alt={`Preview ${index}`} className="preview-image" />
-                            <Form.Control
-                                type="text"
-                                placeholder="Petite description"
-                                value={altDescriptions[index] || ""}
-                                onChange={(e) => handleAltDescriptionChange(e, index)}
-                            />
-                            <Button variant="danger" onClick={() => handleRemoveImage(index)}>Supprimer</Button>
-                        </div>
+                        <Col key={index} xs={6} md={4} lg={3}>
+                            <Card className="preview-container">
+                                <Card.Img variant="top" src={src} alt={`Preview ${index}`} className="preview-image" />
+                                <Card.Body>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Petite description"
+                                        value={altDescriptions[index] || ""}
+                                        onChange={(e) => handleAltDescriptionChange(e, index)}
+                                    />
+                                    <Button variant="danger" onClick={() => handleRemoveImage(index)}>Supprimer</Button>
+                                </Card.Body>
+                            </Card>
+                        </Col>
                     ))}
-                </div>
+                </Row>
 
                 <Button variant="primary" type="submit">
                     Ajouter
