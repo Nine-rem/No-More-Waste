@@ -2,14 +2,14 @@
 Définition des constantes 
 ---------------------------------------------------------- */
 
-
-const DOMAIN = 'http://localhost:5173';
+require('dotenv').config();
+const DOMAIN = process.env.DOMAIN;
 const express = require('express')
 const app = express()
 const connection = require('./db-connection.js');
 const cors = require('cors')
 const jwt = require('jsonwebtoken');
-const secretKey = "pa2024";
+const secretKey = process.env.SECRET_KEY;
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -17,6 +17,8 @@ const imageDownloader = require('image-downloader');
 const multer = require('multer');
 const fs = require('fs');
 const { format } = require('date-fns');
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 //middleware
 app.use(express.json());
 app.use(cors({
@@ -24,6 +26,7 @@ app.use(cors({
   origin: DOMAIN
 }))
 app.use(express.json())
+console.log(process.env.STRIPE_SECRET_KEY)
  
 app.use(cookieParser());
 app.use("/uploads",express.static(__dirname + '/uploads'));
@@ -697,58 +700,55 @@ app.get('/products/:productId/photos', (req, res) => {
 });
 
 
-app.delete('/photos/:photoId', (req, res) => {
-  const { photoId } = req.params;
-  const token = req.cookies.token; 
-  const decoded = jwt.verify(token, secretKey);
-  const userId = decoded.userId;
+app.delete('/photos/:photoId',(req, res) => {
+    const { photoId } = req.params;
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const userId = decoded.userId;
 
+    // Requête pour obtenir le chemin de la photo et vérifier qu'elle appartient à un produit de l'utilisateur
+    const getPhotoQuery = `
+        SELECT ph.path, p.idUser
+        FROM PHOTO ph
+        JOIN PRODUCT p ON ph.idProduct = p.idProduct
+        WHERE ph.idPhoto = ? AND p.idUser = ?
+    `;
 
-  // Requête pour obtenir le chemin de la photo et vérifier qu'elle appartient à un produit de l'utilisateur
-  const getPhotoQuery = `
-      SELECT ph.path, p.idUser
-      FROM PHOTO ph
-      JOIN PRODUCT p ON ph.idProduct = p.idProduct
-      WHERE ph.idPhoto = ? AND p.idUser = ?
-  `;
+    connection.query(getPhotoQuery, [photoId, userId], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la récupération de la photo:', err);
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
 
-  connection.query(getPhotoQuery, [photoId, userId], (err, results) => {
-      if (err) {
-          console.error('Erreur lors de la récupération de la photo:', err);
-          return res.status(500).json({ error: 'Erreur serveur' });
-      }
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Photo non trouvée ou non autorisée' });
+        }
 
-      if (results.length === 0) {
-          return res.status(404).json({ error: 'Photo non trouvée ou non autorisée' });
-      }
+        const photoPath = path.join(__dirname, 'uploads', results[0].path);
 
-      const photoPath = path.join(__dirname, 'uploads', results[0].path);
+        // Suppression du fichier physique
+        fs.unlink(photoPath, (err) => {
+            if (err) {
+                console.error('Erreur lors de la suppression du fichier:', err);
+                return res.status(500).json({ error: 'Erreur lors de la suppression du fichier' });
+            }
 
-      // Suppression du fichier physique
-      fs.unlink(photoPath, (err) => {
-          if (err) {
-              console.error('Erreur lors de la suppression du fichier:', err);
-              return res.status(500).json({ error: 'Erreur lors de la suppression du fichier' });
-          }
+            // Suppression de l'entrée de la photo dans la base de données
+            const deletePhotoQuery = `
+                DELETE FROM PHOTO WHERE idPhoto = ?
+            `;
 
-          // Suppression de l'entrée de la photo dans la base de données
-          const deletePhotoQuery = `
-              DELETE FROM PHOTO
-              WHERE idPhoto = ?
-          `;
+            connection.query(deletePhotoQuery, [photoId], (err) => {
+                if (err) {
+                    console.error('Erreur lors de la suppression de la photo de la base de données:', err);
+                    return res.status(500).json({ error: 'Erreur lors de la suppression de la photo de la base de données' });
+                }
 
-          connection.query(deletePhotoQuery, [photoId], (err) => {
-              if (err) {
-                  console.error('Erreur lors de la suppression de la photo de la base de données:', err);
-                  return res.status(500).json({ error: 'Erreur lors de la suppression de la photo de la base de données' });
-              }
-
-              res.json({ message: 'Photo supprimée avec succès' });
-          });
-      });
-  });
+                res.json({ message: 'Photo supprimée avec succès' });
+            });
+        });
+    });
 });
-
 
 app.put('/products/:productId', upload.array('images'), (req, res) => {
   const productId = req.params.productId;
@@ -818,6 +818,40 @@ app.put('/products/:productId', upload.array('images'), (req, res) => {
 
 
 
+app.delete('/products/:productId',(req, res) => {
+    const productId = req.params.productId;
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const userId = decoded.userId;
+    // Suppression du produit de la base de données
+    const deleteProductQuery = `
+        DELETE FROM PRODUCT WHERE idProduct = ? AND idUser = ?
+    `;
+
+    connection.query(deleteProductQuery, [productId, userId], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la suppression du produit:', err);
+            return res.status(500).json({ message: 'Erreur de serveur' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Produit non trouvé ou non autorisé' });
+        }
+
+        res.json({ message: 'Produit supprimé avec succès' });
+    });
+});
+
+
+
+
+
+
+/*----------------------------------------------------
+    
+      Services
+---------------------------------------------------------- */
+
 app.get('/users/:userId/services', (req, res) => {
   const userId = req.params.userId;
 
@@ -869,10 +903,169 @@ cron.schedule('0 0 * * *', () => {
   });
 });
 
+/* ----------------------------------------------------
+    Abonnement
+---------------------------------------------------------- */
+function saveCustomerIdToDatabase(userId, customerId) {
+    return new Promise((resolve, reject) => {
+        const query = 'UPDATE USER SET stripeCustomerId = ? WHERE idUser = ?';
 
-/*----------------------------------------------------
+        connection.query(query, [customerId, userId], (error, results) => {
+            if (error) {
+                return reject(error);
+            }
+
+            resolve(results);
+        });
+    });
+}
+function getCustomerIdFromDatabase(userId) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT stripeCustomerId FROM USER WHERE idUser = ?';
+
+        connection.query(query, [userId], (error, results) => {
+            if (error) {
+                return reject(error);
+            }
+
+            if (results.length > 0 && results[0].stripeCustomerId) {
+                resolve(results[0].stripeCustomerId); // Retourne le customerId trouvé
+            } else {
+                resolve(null); // Retourne null si aucun customerId n'est trouvé
+            }
+        });
+    });
+}
+
+
+app.post('/create-subscription', async (req, res) => {
+    const { idSubscription } = req.body;
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const userId = decoded.userId;
+
+    try {
+        const getPriceIdQuery = 'SELECT price_id FROM SUBSCRIPTION WHERE idSubscription = ?';
+        connection.query(getPriceIdQuery, [idSubscription], async (error, results) => {
+            if (error) {
+                return res.status(500).json({ error: 'Erreur lors de la récupération du price_id' });
+            }
+
+            const price_id = results[0].price_id;
+            let customerId = await getCustomerIdFromDatabase(userId);
+
+            if (!customerId) {
+                const customer = await stripe.customers.create({
+                    email: decoded.email,
+                });
+                customerId = customer.id;
+                await saveCustomerIdToDatabase(userId, customerId);
+            }
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: [{ price: price_id, quantity: 1 }],
+                mode: 'subscription',
+                success_url: `${process.env.DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${process.env.DOMAIN}/account?canceled=true`,
+                customer: customerId,
+            });
+
+            res.json({ url: session.url });
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erreur lors de la création de la session Stripe' });
+    }
+});
+
+
+
+
+app.post('/unsubscribe', async (req, res) => {
+    const { idSubscription } = req.body;
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const userId = decoded.userId;
+
+    try {
+        // Vérifiez si l'utilisateur est abonné à ce service
+        const checkSubscriptionQuery = `
+            SELECT stripeSubscriptionId FROM subscribed
+            WHERE idUser = ? AND idSubscription = ?
+        `;
+        connection.query(checkSubscriptionQuery, [userId, idSubscription], async (error, results) => {
+            if (error) {
+                console.error('Erreur lors de la vérification de l\'abonnement:', error);
+                return res.status(500).json({ error: 'Erreur lors de la vérification de l\'abonnement' });
+            }
+
+            if (results.length === 0) {
+                return res.status(400).json({ error: 'Vous n\'êtes pas abonné à ce service.' });
+            }
+
+            const stripeSubscriptionId = results[0].stripeSubscriptionId;
+
+            // Annuler l'abonnement dans Stripe
+            await stripe.subscriptions.cancel(stripeSubscriptionId);
+
+            // Supprimer l'abonnement de la base de données
+            const deleteSubscriptionQuery = `
+                DELETE FROM subscribed 
+                WHERE idUser = ? AND idSubscription = ?
+            `;
+            connection.query(deleteSubscriptionQuery, [userId, idSubscription], (error, results) => {
+                if (error) {
+                    console.error('Erreur lors de la suppression de l\'abonnement:', error);
+                    return res.status(500).json({ error: 'Erreur lors de la suppression de l\'abonnement' });
+                }
+
+                res.json({ message: 'Abonnement annulé avec succès.' });
+            });
+        });
+    } catch (error) {
+        console.error('Erreur lors de l\'annulation de l\'abonnement:', error.message);
+        res.status(500).json({ error: 'Erreur lors de l\'annulation de l\'abonnement' });
+    }
+});
+
+
+app.get('/subscriptions', (req, res) => {
+    const query = 'SELECT * FROM SUBSCRIPTION';
+
+    connection.query(query, (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des abonnements:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des abonnements' });
+        }
+
+        res.json(results);
+    });
+});
+
+app.get('/user-subscriptions/:idUser', (req, res) => {
+    const { idUser } = req.params;
+
+    const query = `
+        SELECT idSubscription 
+        FROM subscribed
+        WHERE idUser = ?
+    `;
+
+    connection.query(query, [idUser], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des abonnements de l\'utilisateur:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des abonnements de l\'utilisateur' });
+        }
+
+        res.json(results);
+        console.log(results);
+    });
+});
+
+
+/* ----------------------------------------------------
   
-    Utilisateurs
+   Admin - Utilisateurs
 ---------------------------------------------------------- */
 
 app.get('/users', (req, res) => {
@@ -907,6 +1100,199 @@ app.patch('/users/:id/ban', (req, res) => {
       });
   });
 });
+
+
+/*----------------------------------------------------
+    
+     Admin - Abonnements
+     
+--------------------------------------------- */
+
+
+
+
+
+app.post('/subscription', async (req, res) => {
+    const { name, price, description, frequency } = req.body;
+
+    // Valider les données
+    if (!name || !price || !frequency) {
+        return res.status(400).json({ error: 'Tous les champs requis doivent être remplis.' });
+    }
+
+    try {
+        // Créer un produit dans Stripe
+        const product = await stripe.products.create({
+            name: name,
+            description: description || '',
+        });
+
+        // Créer un prix pour ce produit
+        const stripePrice = await stripe.prices.create({
+            unit_amount: price * 100, // Prix en centimes
+            currency: 'eur',
+            recurring: { interval: frequency }, // Intervalle de facturation (month, year)
+            product: product.id,
+        });
+
+        // Enregistrer l'abonnement dans la base de données
+        const query = `
+            INSERT INTO SUBSCRIPTION (price, price_id, description, name, frequency)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        connection.query(query, [price, stripePrice.id, description, name, frequency], (error, results) => {
+            if (error) {
+                console.error('Erreur lors de l\'ajout de l\'abonnement:', error);
+                return res.status(500).json({ error: 'Erreur lors de l\'ajout de l\'abonnement' });
+            }
+            res.json({ message: 'Abonnement créé avec succès', idSubscription: results.insertId });
+        });
+    } catch (error) {
+        console.error('Erreur lors de la création de l\'abonnement:', error.message);
+        res.status(500).json({ error: 'Erreur lors de la création de l\'abonnement' });
+    }
+});
+
+
+
+
+app.put('/subscription/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, price, price_id, description, frequency } = req.body;
+
+    // Valider les données
+    if (!name || !price || !price_id || !frequency) {
+        return res.status(400).json({ error: 'Tous les champs requis doivent être remplis.' });
+    }
+
+    try {
+        // Mettre à jour l'abonnement dans la base de données
+        const query = `
+            UPDATE SUBSCRIPTION 
+            SET price = ?, price_id = ?, description = ?, name = ?, frequency = ?
+            WHERE idSubscription = ?
+        `;
+        connection.query(query, [price, price_id, description, name, frequency, id], (error, results) => {
+            if (error) {
+                console.error('Erreur lors de la mise à jour de l\'abonnement:', error);
+                return res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'abonnement' });
+            }
+
+            if (results.affectedRows === 0) {
+                return res.status(404).json({ error: 'Abonnement non trouvé' });
+            }
+
+            res.json({ message: 'Abonnement mis à jour avec succès' });
+        });
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'abonnement:', error.message);
+        res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'abonnement' });
+    }
+});
+
+app.delete('/subscription/:id', (req, res) => {
+    const { id } = req.params;
+
+    const query = 'DELETE FROM SUBSCRIPTION WHERE idSubscription = ?';
+    connection.query(query, [id], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la suppression de l\'abonnement:', error);
+            return res.status(500).json({ error: 'Erreur lors de la suppression de l\'abonnement' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Abonnement non trouvé' });
+        }
+
+        res.json({ message: 'Abonnement supprimé avec succès' });
+    });
+});
+
+
+
+
+app.get('/subscription/:id', (req, res) => {
+    const { id } = req.params;
+    const query = 'SELECT * FROM SUBSCRIPTION WHERE idSubscription = ?';
+
+    connection.query(query, [id], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération de l\'abonnement:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération de l\'abonnement' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Abonnement non trouvé' });
+        }
+
+        res.json(results[0]);
+    });
+});
+
+
+/*----------------------------------------------------
+
+    Stripe Webhooks
+---------------------------------------------------------- */
+
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.log(`⚠️  Webhook signature verification failed.`, err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+        case 'checkout.session.completed':
+            const session = event.data.object;
+
+            // Extraire les informations de la session
+            const customerId = session.customer;
+            const subscriptionId = session.subscription; // ID de l'abonnement Stripe
+            const userId = getUserIdFromCustomerId(customerId); // Votre fonction pour récupérer l'ID utilisateur
+
+            // Mettre à jour la base de données
+            const query = `
+                INSERT INTO subscribe (idUser, idSubscription, stripeSubscriptionId)
+                VALUES (?, ?, ?)
+            `;
+            connection.query(query, [userId, session.metadata.idSubscription, subscriptionId], (error, results) => {
+                if (error) {
+                    console.error('Erreur lors de l\'insertion de l\'abonnement dans la base de données:', error);
+                    return res.status(500).json({ error: 'Erreur lors de l\'insertion de l\'abonnement dans la base de données' });
+                }
+
+                console.log('Abonnement ajouté à la base de données pour l\'utilisateur:', userId);
+            });
+
+            break;
+        default:
+            console.log(`Unhandled event type ${event.type}`);
+    }
+
+    res.send();
+});
+
+// Fonction pour récupérer l'ID utilisateur en fonction de l'ID du client Stripe
+function getUserIdFromCustomerId(customerId) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT idUser FROM USER WHERE stripeCustomerId = ?';
+        connection.query(query, [customerId], (error, results) => {
+            if (error) {
+                return reject(error);
+            }
+            resolve(results[0].idUser);
+        });
+    });
+}
+
 /* ----------------------------------------------------------
       Démarrage du serveur
 ---------------------------------------------------------- */

@@ -58,14 +58,20 @@ CREATE TABLE USER (
     isMerchant BOOLEAN,
     isVolunteer BOOLEAN,
     token TEXT,
-    isBanned BOOLEAN
+    isBanned BOOLEAN,
+    stripeCustomerId VARCHAR(255) DEFAULT NULL
 );
 
 -- Table: SUBSCRIPTION
 CREATE TABLE SUBSCRIPTION (
     idSubscription INTEGER AUTO_INCREMENT PRIMARY KEY,
     price DECIMAL(10, 2),
-    type VARCHAR(255)
+    price_id VARCHAR(255),
+    description VARCHAR(255),
+    name VARCHAR(255),
+    frequency VARCHAR(255),
+    idUSer INTEGER,
+    FOREIGN KEY (idUser) REFERENCES USER(idUser)
 );
 
 -- Table: SERVICE
@@ -94,13 +100,13 @@ CREATE TABLE belongs (
 );
 
 -- Table: subscribe (Many-to-Many relationship between USER and SUBSCRIPTION)
-CREATE TABLE subscribe (
-    idSubscription INTEGER,
+CREATE TABLE subscribe(
+    idUserSubscription INTEGER AUTO_INCREMENT PRIMARY KEY,
     idUser INTEGER,
-    isSubscribed BOOLEAN,
-    PRIMARY KEY (idSubscription, idUser),
-    FOREIGN KEY (idSubscription) REFERENCES SUBSCRIPTION(idSubscription),
-    FOREIGN KEY (idUser) REFERENCES USER(idUser)
+    idSubscription INTEGER,
+    stripeSubscriptionId VARCHAR(255),
+    FOREIGN KEY (idUser) REFERENCES USER(idUser),
+    FOREIGN KEY (idSubscription) REFERENCES SUBSCRIPTION(idSubscription)
 );
 
 -- Table: propose (Many-to-Many relationship between USER and SERVICE)
@@ -168,3 +174,12 @@ INSERT INTO timeslot (date, time, idService, reserved) VALUES
 ('2024-08-02', '11:00:00', 2, FALSE),
 ('2024-08-02', '14:00:00', 2, FALSE);
 
+
+INSERT INTO SUBSCRIPTION(price, price_id, name, frequency) VALUES
+(10.00, 'price_1J2J3J4J5J6J7J8J9J', 'Petit Abonnement', 'Mensuel');
+
+INSERT INTO SUBSCRIPTION(price, price_id, name, frequency) VALUES
+(20.00, 'price_1J2J3J4J5J6J7J8J9J', 'Moyen Abonnement', 'Mensuel');
+
+INSERT INTO SUBSCRIPTION(price, price_id, name, frequency) VALUES
+(30.00, 'price_1J2J3J4J5J6J7J8J9J', 'Grand Abonnement', 'Mensuel');

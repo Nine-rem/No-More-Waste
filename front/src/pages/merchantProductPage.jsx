@@ -4,7 +4,8 @@ import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { UserContext } from '../userContext';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import '../style/merchantProductPage.css';  // Assurez-vous de créer un fichier CSS pour les styles spécifiques
-
+import "../accountNav.jsx";
+import AccountNav from '../accountNav.jsx';
 function MerchantProductPage() {
     const { user, ready } = useContext(UserContext);
     const [products, setProducts] = useState([]);
@@ -34,19 +35,38 @@ function MerchantProductPage() {
         navigate(`/account/merchant/editProduct/${productId}`);
     };
 
+    const handleDeleteProduct = (productId) => {
+        if (window.confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
+            axios.delete(`/products/${productId}`)
+                .then(response => {
+                    setProducts(products.filter(product => product.idProduct !== productId));
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la suppression du produit:", error);
+                });
+        }
+    };
+
     return (
+        <>
+        <AccountNav />
         <Container>
             <Row className="my-4">
                 <Col>
                     <h1>Vos Produits</h1>
                     <p>Voici la liste de vos produits avec les détails correspondants.</p>
                 </Col>
+                <Col className="text-right">
+                    <Link to="/account/merchant/addProduct">
+                        <Button variant="primary">Ajouter un Produit</Button>
+                    </Link>
+                </Col>
             </Row>
             <Row className="product-grid">
                 {products.length > 0 ? (
                     products.map((product) => (
                         <Col key={product.idProduct} sm={12} md={6} lg={4} className="mb-4">
-                            <Card className="product-card" onClick={() => handleCardClick(product.idProduct)}>
+                            <Card className="product-card">
                                 {product.photos && product.photos.length > 0 ? (
                                     <Card.Img variant="top" src={product.photos[0].fullPath} alt={product.name} />
                                 ) : (
@@ -58,7 +78,8 @@ function MerchantProductPage() {
                                         {product.reference}<br />
                                         {product.stock} en stock
                                     </Card.Text>
-                                    <Button variant="primary">Modifier le Produit</Button>
+                                    <Button variant="primary" onClick={() => handleCardClick(product.idProduct)}>Modifier le Produit</Button>
+                                    <Button variant="danger" onClick={() => handleDeleteProduct(product.idProduct)} className="ml-2">Supprimer</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -71,15 +92,13 @@ function MerchantProductPage() {
                                 <Card.Text>
                                     Il semble que vous n'ayez pas encore ajouté de produits. Commencez à en ajouter pour les voir ici.
                                 </Card.Text>
-                                <Link to="/account/merchant/addProduct">
-                                    <Button variant="primary">Ajouter un Produit</Button>
-                                </Link>
                             </Card.Body>
                         </Card>
                     </Col>
                 )}
             </Row>
         </Container>
+        </>
     );
 }
 

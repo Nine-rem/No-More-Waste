@@ -72,6 +72,7 @@ function MerchantEditProductPage() {
         setAltDescriptions({ ...altDescriptions, [index]: value });
     };
 
+    // Modification ici : Utilisation de l'API pour supprimer une photo
     const handleRemoveExistingPhoto = (photoId) => {
         axios.delete(`/photos/${photoId}`)
             .then(response => {
@@ -79,6 +80,7 @@ function MerchantEditProductPage() {
             })
             .catch(error => {
                 console.error("Erreur lors de la suppression de la photo:", error);
+                setErrorMessage("Erreur lors de la suppression de la photo");
             });
     };
 
@@ -120,16 +122,14 @@ function MerchantEditProductPage() {
                 withCredentials: true
             });
 
-            setSuccessMessage("Produit mis à jour avec succès !");  // Définir le message de succès
+            setSuccessMessage("Produit mis à jour avec succès !");
             setNewPhotos([]);
             setPreviewNewPhotos([]);
             setAltDescriptions({});
-            // Recharger la page pour afficher les nouvelles photos
             setTimeout(() => {
-            window.location.reload();
-        }, 1000); // Recharger la page après un délai de 1 seconde
+                window.location.reload();
+            }, 1000);
 
-        
         } catch (error) {
             console.error("Erreur lors de la mise à jour :", error);
             if (error.response) {
@@ -144,7 +144,7 @@ function MerchantEditProductPage() {
         <div className="product-page">
             <h1>Modifier le produit</h1>
             {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-            {successMessage && <Alert variant="success">{successMessage}</Alert>}  {/* Afficher le message de succès */}
+            {successMessage && <Alert variant="success">{successMessage}</Alert>}
             <Form onSubmit={handleSubmit}>
                 <Form.Group htmlFor="formProductName">
                     <Form.Label>Nom du produit</Form.Label>

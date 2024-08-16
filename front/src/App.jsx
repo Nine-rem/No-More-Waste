@@ -12,6 +12,8 @@ import CookiesPage from './pages/cookiesPage.jsx';
 import ServiceTermsPage from './pages/serviceTermsPage.jsx';
 import ContactPage from './pages/contactPage.jsx';
 import AccountPage from './pages/accountPage.jsx';
+
+
 import ServicesPage from './pages/servicesPage.jsx';
 import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
@@ -24,13 +26,19 @@ import MerchantEditProductPage from './pages/merchantEditProductPage.jsx';
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
 import EditUserPage from './pages/editUserPage.jsx';
+import EditSubscriptionPage from './pages/adminEditSubscription.jsx';
+import AdminSubscriptionPage from './pages/adminSubscriptionPage.jsx';
+import AdminCreateSubscriptionPage from './pages/adminCreateSubscriptionPage.jsx';
 
 import NotFoundPage from './pages/notFoundPage.jsx';
 import Layout from './layout.jsx';
-axios.defaults.baseURL = 'http://localhost:5000';
-;
+import SubscriptionPage from './pages/subscriptionPage.jsx';
+import SuccessPage from './pages/successPage.jsx';
+import CancelledPage from './pages/cancelledPage.jsx';
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL
 axios.defaults.withCredentials = true;
 function App() {
+
   return (
     
     <UserContextProvider>
@@ -41,6 +49,9 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/account/edit/:id" element={<EditUserPage />} />
+          <Route path="/account/subscription" element={<SubscriptionPage />} />
+
           <Route path='/account/services' element={<ServicesPage />} />
 
           <Route path="/account/becomeVolunteer" element={<BecomeVolunteerPage />} />
@@ -54,7 +65,10 @@ function App() {
           <Route path="/account/admin" element={<AdminPage />} />
           <Route path="/account/admin/users" element={<UsersPage />} />
           <Route path="account/admin/users/:id/edit" element={<EditUserPage/>} />
-
+          <Route path="/account/admin/subscriptions/:id/edit" element={<EditSubscriptionPage />} />
+          <Route path='/account/admin/subscriptions' element={<AdminSubscriptionPage />} />
+          <Route path='/account/admin/subscription/create' element={<AdminCreateSubscriptionPage />} />
+          
 
           <Route path="/quotation" element={<QuotationPage />} />
           <Route path="/legal" element={<LegalPage />} />
@@ -63,6 +77,9 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path='calendar' element={<CalendarPage />} />
 
+
+          <Route path="/success" element={<SuccessPage />} />
+          <Route path="/account?canceled=true" element={<CancelledPage />} /> 
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

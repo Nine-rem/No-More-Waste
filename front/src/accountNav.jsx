@@ -12,7 +12,7 @@ export default function AccountNav() {
     let subpage = pathName.pathname.split('/')[2];
 
     if (!ready) {
-        return <div>Loading...</div>;
+        return;
     }
 
     if (ready && !user) {

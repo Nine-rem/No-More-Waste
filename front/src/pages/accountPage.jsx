@@ -6,8 +6,6 @@ import AccountNav from '../accountNav.jsx';
 import '../style/accountNav.css';
 import Button from 'react-bootstrap/Button';
 
-
-/* lien des icones https://heroicons.com/ */
 export default function ProfilePage() {
     const { ready, user, logout } = useContext(UserContext);
     let { subpage } = useParams();
@@ -31,16 +29,8 @@ export default function ProfilePage() {
     }
 
     function isMerchant(user) {
-        if (user && user.isMerchant === 0) {
-            return false;
-        } else if (user && user.isMerchant === 1) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        return user && user.isMerchant === 1;
     }
-
 
     return (
         <>
@@ -50,19 +40,20 @@ export default function ProfilePage() {
                     <div className='text-center max-w-lg mx-auto'>
                         Bonjour {user.firstname} {user.lastname} !<br />
                         <button onClick={handleLogout} type="button" className="btn btn-dark max-w-sm mt-2">Se déconnecter</button>
-                        <Link to='/account/edit'><button type="button" className="btn btn-dark max-w-sm mt-2">Modifier mon profil</button></Link>
+                        <Link to='/account/edit'>
+                            <button type="button" className="btn btn-dark max-w-sm mt-2">Modifier mon profil</button>
+                        </Link>
+                        <Link to='/account/subscription'>
+                            <Button variant="dark" className="max-w-sm mt-2">S'abonner</Button>
+                        </Link>
                     </div>
                 )}
-
-                
             </div>
             {user && !isMerchant(user) && (
-                <Link to='becomeVolunteer'>
+                <Link to='/becomeVolunteer'>
                     <Button variant="dark">Devenir Bénévole</Button>
                 </Link>
             )}
-
-            
         </>
     );
 }

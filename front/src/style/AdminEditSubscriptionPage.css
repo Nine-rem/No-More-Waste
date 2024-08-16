@@ -1,0 +1,7 @@
+.non-editable {
+    user-select: none; /* Désactive la sélection du texte */
+    pointer-events: none; /* Désactive les événements de pointeur (clic, etc.) */
+    background-color: #f5f5f5; /* Change la couleur de fond pour indiquer que le champ est non modifiable */
+    color: #777; /* Change la couleur du texte pour indiquer qu'il est en lecture seule */
+    cursor: not-allowed; /* Change le curseur pour indiquer que le champ n'est pas modifiable */
+}

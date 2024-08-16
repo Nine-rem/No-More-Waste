@@ -1,4 +1,7 @@
 back/db*
 back/node_modules
-back/uploads/
+dist
+front/node_modules
 front/package*
+*.env*
+*.exe

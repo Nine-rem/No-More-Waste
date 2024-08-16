@@ -21,9 +21,12 @@ function AdminPage() {
         <div>
             <AccountNav />
             <h1>Admin</h1>
-            <p>Vous pouvez consulter ici les informations des utilisateurs</p>
+            <p>Vous pouvez effectuer ici l'administration du site</p>
             <Link to="/account/admin/users">
                 <Button variant="primary">Liste des utilisateurs</Button>
+            </Link>
+            <Link to="/account/admin/subscriptions">
+                <Button variant="primary">Liste des abonnements</Button>
             </Link>
         </div>
     );
