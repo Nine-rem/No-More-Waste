@@ -22,7 +22,7 @@ export default function EditUserPage() {
 
     useEffect(() => {
         // Charger les données de l'utilisateur à modifier
-        axios.get(`/users/${id}`, { withCredentials: true })
+        axios.get(`/api/users/${id}`, { withCredentials: true })
         
             .then(response => {
                 const user = response.data;
@@ -61,7 +61,7 @@ export default function EditUserPage() {
             return;
         }
 
-        axios.put(`/users/${id}`, userData, { withCredentials: true })
+        axios.put(`/api/users/${id}`, userData, { withCredentials: true })
             .then(() => {
                 // Redirection après mise à jour réussie
                 navigate('/account/admin/users');

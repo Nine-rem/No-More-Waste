@@ -9,7 +9,7 @@ export function UserContextProvider({ children }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-            axios.get('/account', { withCredentials: true })
+            axios.get('/api/account', { withCredentials: true })
             .then((response) => {
                 const data = response.data;
                 //console.log(data);
@@ -40,7 +40,7 @@ export function UserContextProvider({ children }) {
 
     const logout = async () => {
         try {
-            await axios.post('/logout', {}, { withCredentials: true });
+            await axios.post('/api/logout', {}, { withCredentials: true });
             setUser(null); 
             setReady(false); 
         } catch (error) {

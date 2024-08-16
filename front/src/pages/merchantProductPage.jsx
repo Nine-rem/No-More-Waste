@@ -13,7 +13,7 @@ function MerchantProductPage() {
 
     useEffect(() => {
         if (ready && user) {
-            axios.get(`/users/${user.idUser}/products`)
+            axios.get(`/api/users/${user.idUser}/products`)
                 .then(response => {
                     setProducts(response.data);
                 })
@@ -37,7 +37,7 @@ function MerchantProductPage() {
 
     const handleDeleteProduct = (productId) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-            axios.delete(`/products/${productId}`)
+            axios.delete(`/api/products/${productId}`)
                 .then(response => {
                     setProducts(products.filter(product => product.idProduct !== productId));
                 })

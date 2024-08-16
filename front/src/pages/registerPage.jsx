@@ -27,7 +27,7 @@ export default function RegisterPage() {
         setError("");
         setFieldErrors({});
         try {
-            const response = await axios.post('/register', {
+            const response = await axios.post('/api/register', {
                 lastName,
                 firstName,
                 birthdate,

@@ -17,7 +17,7 @@ export default function AdminEditSubscriptionPage() {
 
     useEffect(() => {
         // Récupérer les détails de l'abonnement pour pré-remplir le formulaire
-        axios.get(`/subscription/${id}`)
+        axios.get(`/api/subscription/${id}`)
             .then(response => {
                 setName(response.data.name);
                 setPrice(response.data.price);
@@ -43,7 +43,7 @@ export default function AdminEditSubscriptionPage() {
         };
 
         try {
-            await axios.put(`/subscription/${id}`, data);
+            await axios.put(`/api/subscription/${id}`, data);
             setSuccessMessage('Abonnement mis à jour avec succès');
             setTimeout(() => navigate('/account/admin/subscriptions'), 2000); // Redirige après 2 secondes
         } catch (error) {

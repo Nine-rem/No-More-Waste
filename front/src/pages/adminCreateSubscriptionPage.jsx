@@ -23,7 +23,7 @@ export default function AdminCreateSubscriptionPage() {
         };
 
         try {
-            await axios.post('/subscription', data);
+            await axios.post('/api/subscription', data);
             setSuccessMessage('Abonnement créé avec succès');
             setTimeout(() => navigate('/account/admin/subscriptions'), 2000); // Redirige après 2 secondes
         } catch (error) {

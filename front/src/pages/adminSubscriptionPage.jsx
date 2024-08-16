@@ -11,7 +11,7 @@ export default function AdminSubscriptionPage() {
 
     useEffect(() => {
         // Récupérer les abonnements depuis le backend
-        axios.get('/subscriptions')
+        axios.get('/api/subscriptions')
             .then(response => {
                 setSubscriptions(response.data);
             })
@@ -24,7 +24,7 @@ export default function AdminSubscriptionPage() {
     const handleDelete = async (id) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet abonnement ?')) {
             try {
-                await axios.delete(`/subscription/${id}`);
+                await axios.delete(`/api/subscription/${id}`);
                 setSuccessMessage('Abonnement supprimé avec succès');
                 setSubscriptions(subscriptions.filter(sub => sub.idSubscription !== id));
             } catch (error) {

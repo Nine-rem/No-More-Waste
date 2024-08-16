@@ -11,7 +11,7 @@ function UsersPage() {
 
     useEffect(() => {
         if (ready) {
-            axios.get('/users')
+            axios.get('/api/users')
                 .then(response => {
                     setUsers(response.data);
                 })
@@ -22,7 +22,7 @@ function UsersPage() {
     }, [ready]);
 
     const handleBanUser = (userId) => {
-        axios.patch(`/users/${userId}/ban`)
+        axios.patch(`/api/users/${userId}/ban`)
             .then(response => {
                 const updatedStatus = response.data.isBanned;
                 setUsers(users.map(user => 

@@ -20,7 +20,7 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const {data} = await axios.post('/login', {
+            const {data} = await axios.post('/api/login', {
                 email: email,
                 password: password
             },

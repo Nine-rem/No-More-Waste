@@ -25,7 +25,7 @@ function MerchantEditProductPage() {
     // Vérifie si l'utilisateur est prêt (chargé) et connecté
     useEffect(() => {
         if (ready && user && user.idUser) {
-            axios.get(`/users/${user.idUser}/products/${productId}`)
+            axios.get(`/api/users/${user.idUser}/products/${productId}`)
                 .then(response => {
                     setProduct(response.data);
                 })
@@ -34,7 +34,7 @@ function MerchantEditProductPage() {
                     setErrorMessage("Erreur lors de la récupération du produit");
                 });
 
-            axios.get(`/products/${productId}/photos`)
+            axios.get(`/api/products/${productId}/photos`)
                 .then(response => {
                     setPhotos(response.data);
                 })
@@ -74,7 +74,7 @@ function MerchantEditProductPage() {
 
     // Modification ici : Utilisation de l'API pour supprimer une photo
     const handleRemoveExistingPhoto = (photoId) => {
-        axios.delete(`/photos/${photoId}`)
+        axios.delete(`/api/photos/${photoId}`)
             .then(response => {
                 setPhotos(photos.filter(photo => photo.idPhoto !== photoId));
             })
@@ -115,7 +115,7 @@ function MerchantEditProductPage() {
         });
 
         try {
-            const response = await axios.put(`/products/${productId}`, formData, {
+            const response = await axios.put(`/api/products/${productId}`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },

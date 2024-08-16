@@ -22,7 +22,7 @@ export default function SubscriptionPage() {
             return;
         }
         // Récupérer les options d'abonnement depuis le backend
-        axios.get('/subscriptions')
+        axios.get('/api/subscriptions')
             .then(response => {
                 setSubscriptions(response.data);
             })
@@ -32,7 +32,7 @@ export default function SubscriptionPage() {
             });
 
         // Récupérer les abonnements de l'utilisateur
-        axios.get(`/user-subscriptions/${user.idUser}`)
+        axios.get(`/api/user-subscriptions/${user.idUser}`)
             .then(response => {
                 const subscriptionIds = response.data.map(sub => sub.idSubscription);
                 setUserSubscriptions(subscriptionIds);
@@ -50,7 +50,7 @@ export default function SubscriptionPage() {
                 return;
             }
 
-            const response = await axios.post('/create-subscription', { idSubscription });
+            const response = await axios.post('/api/create-subscription', { idSubscription });
 
             if (response.data.url) {
                 window.location.href = response.data.url;
@@ -63,7 +63,7 @@ export default function SubscriptionPage() {
 
     const handleUnsubscribe = async (idSubscription) => {
         try {
-            const response = await axios.post('/unsubscribe', { idSubscription });
+            const response = await axios.post('/api/unsubscribe', { idSubscription });
 
             if (response.data.message) {
                 setUserSubscriptions(userSubscriptions.filter(sub => sub !== idSubscription));

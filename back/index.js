@@ -41,7 +41,7 @@ const { error } = require('console');
 
 // Inscription
 //inscription de l'utilisateur
-app.post("/register", async (req, res) => {
+app.post("/api/register", async (req, res) => {
     let {
         lastname:lastname,
         firstname:firstname
@@ -127,7 +127,7 @@ app.post("/register", async (req, res) => {
 //connexion de l'utilisateur
 
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   let { email, password } = req.body;
 
   // Nettoyage et validation de l'email
@@ -175,7 +175,7 @@ app.post('/login', async (req, res) => {
   });
 });
 
-app.get('/account', async (req, res) => {
+app.get('/api/account', async (req, res) => {
     const token = req.cookies.token;
     if (!token) {
     return res.status(401).json({ message: 'Non authentifié' });
@@ -212,7 +212,7 @@ app.get('/account', async (req, res) => {
     });
 });
 
-app.post('/logout', (req, res) => {
+app.post('/api/logout', (req, res) => {
     res.clearCookie('token').json({ message: 'Déconnecté' });
 }
 );
@@ -239,7 +239,7 @@ app.get('/mdp', (req, res) => {
     });
 });
 
-app.put('/users/:id', (req, res) => {
+app.put('/api/users/:id', (req, res) => {
   const userId = req.params.id;
   const { firstname, lastname, birthdate, address, city, postalCode, phoneNumber, email } = req.body;
 
@@ -292,7 +292,7 @@ app.put('/users/:id', (req, res) => {
   });
 });
 
-app.patch('/users/:id/ban', (req, res) => {
+app.patch('/api/users/:id/ban', (req, res) => {
   const userId = req.params.id;
 
   // Vérifier si l'utilisateur existe
@@ -332,7 +332,7 @@ app.patch('/users/:id/ban', (req, res) => {
 ---------------------------------------------------------- */
 // Récupération des créneaux horaires
 
-app.get('/timeslots', (req, res) => {
+app.get('/api/timeslots', (req, res) => {
     const { date, idService } = req.query;
     const query = 'SELECT * FROM timeslot WHERE date = ? AND idService = ? AND reserved = FALSE';
     connection.query(query, [date, idService], (error, results) => {
@@ -342,7 +342,7 @@ app.get('/timeslots', (req, res) => {
   });
 
 
-app.get('/spots', (req, res) => {
+app.get('/api/spots', (req, res) => {
     const { month, year, idService } = req.query;
     const query = `
       SELECT date, COUNT(*) as spots
@@ -527,7 +527,7 @@ const upload = multer({
 
 
 
-app.post('/products', upload.array('images'), (req, res) => {
+app.post('/api/products', upload.array('images'), (req, res) => {
   const { name, reference, stock, description } = req.body;
   const token = req.cookies.token;
   const decoded = jwt.verify(token, secretKey);
@@ -599,7 +599,7 @@ app.post('/products', upload.array('images'), (req, res) => {
 });
 
 
-app.get('/users/:idUser/products', (req, res) => {
+app.get('/api/users/:idUser/products', (req, res) => {
   const idUser = req.params.idUser;
 
   const query = `
@@ -641,7 +641,7 @@ app.get('/users/:idUser/products', (req, res) => {
   });
 });
 
-app.get('/users/:userId/products/:productId', (req, res) => {
+app.get('/api/users/:userId/products/:productId', (req, res) => {
   const { userId, productId } = req.params;
 
   const productQuery = `
@@ -674,7 +674,7 @@ app.get('/users/:userId/products/:productId', (req, res) => {
   });
 });
 
-app.get('/products/:productId/photos', (req, res) => {
+app.get('/api/products/:productId/photos', (req, res) => {
   const { productId } = req.params;
   
   const getPhotosQuery = `
@@ -700,7 +700,7 @@ app.get('/products/:productId/photos', (req, res) => {
 });
 
 
-app.delete('/photos/:photoId',(req, res) => {
+app.delete('/api/photos/:photoId',(req, res) => {
     const { photoId } = req.params;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -750,7 +750,7 @@ app.delete('/photos/:photoId',(req, res) => {
     });
 });
 
-app.put('/products/:productId', upload.array('images'), (req, res) => {
+app.put('/api/products/:productId', upload.array('images'), (req, res) => {
   const productId = req.params.productId;
   const { name, reference, stock, description } = req.body;
   const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
@@ -818,7 +818,7 @@ app.put('/products/:productId', upload.array('images'), (req, res) => {
 
 
 
-app.delete('/products/:productId',(req, res) => {
+app.delete('/api/products/:productId',(req, res) => {
     const productId = req.params.productId;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -852,7 +852,7 @@ app.delete('/products/:productId',(req, res) => {
       Services
 ---------------------------------------------------------- */
 
-app.get('/users/:userId/services', (req, res) => {
+app.get('/api/users/:userId/services', (req, res) => {
   const userId = req.params.userId;
 
   const query = `
@@ -938,7 +938,7 @@ function getCustomerIdFromDatabase(userId) {
 }
 
 
-app.post('/create-subscription', async (req, res) => {
+app.post('/api/create-subscription', async (req, res) => {
     const { idSubscription } = req.body;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -981,7 +981,7 @@ app.post('/create-subscription', async (req, res) => {
 
 
 
-app.post('/unsubscribe', async (req, res) => {
+app.post('/api/unsubscribe', async (req, res) => {
     const { idSubscription } = req.body;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -1029,7 +1029,7 @@ app.post('/unsubscribe', async (req, res) => {
 });
 
 
-app.get('/subscriptions', (req, res) => {
+app.get('/api/subscriptions', (req, res) => {
     const query = 'SELECT * FROM SUBSCRIPTION';
 
     connection.query(query, (error, results) => {
@@ -1042,7 +1042,7 @@ app.get('/subscriptions', (req, res) => {
     });
 });
 
-app.get('/user-subscriptions/:idUser', (req, res) => {
+app.get('/api/user-subscriptions/:idUser', (req, res) => {
     const { idUser } = req.params;
 
     const query = `
@@ -1068,7 +1068,7 @@ app.get('/user-subscriptions/:idUser', (req, res) => {
    Admin - Utilisateurs
 ---------------------------------------------------------- */
 
-app.get('/users', (req, res) => {
+app.get('/api/users', (req, res) => {
     const query = 'SELECT * FROM USER';
     connection.query(query, (error, results) => {
       if (error) throw error;
@@ -1078,7 +1078,7 @@ app.get('/users', (req, res) => {
 );
 
 
-app.patch('/users/:id/ban', (req, res) => {
+app.patch('/api/users/:id/ban', (req, res) => {
   const userId = req.params.id;
   connection.query('SELECT banned FROM users WHERE id = ?', [userId], (err, results) => {
       if (err) {
@@ -1112,7 +1112,7 @@ app.patch('/users/:id/ban', (req, res) => {
 
 
 
-app.post('/subscription', async (req, res) => {
+app.post('/api/subscription', async (req, res) => {
     const { name, price, description, frequency } = req.body;
 
     // Valider les données
@@ -1156,7 +1156,7 @@ app.post('/subscription', async (req, res) => {
 
 
 
-app.put('/subscription/:id', async (req, res) => {
+app.put('/api/subscription/:id', async (req, res) => {
     const { id } = req.params;
     const { name, price, price_id, description, frequency } = req.body;
 
@@ -1190,7 +1190,7 @@ app.put('/subscription/:id', async (req, res) => {
     }
 });
 
-app.delete('/subscription/:id', (req, res) => {
+app.delete('/api/subscription/:id', (req, res) => {
     const { id } = req.params;
 
     const query = 'DELETE FROM SUBSCRIPTION WHERE idSubscription = ?';
@@ -1211,7 +1211,7 @@ app.delete('/subscription/:id', (req, res) => {
 
 
 
-app.get('/subscription/:id', (req, res) => {
+app.get('/api/subscription/:id', (req, res) => {
     const { id } = req.params;
     const query = 'SELECT * FROM SUBSCRIPTION WHERE idSubscription = ?';
 
