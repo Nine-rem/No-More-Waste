@@ -23,7 +23,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // app.use(express.json());
 app.use(cors({
   credentials: true,
-  origin: 'https://www.nomorewaste.site'
+  origin: process.env.DOMAIN
 }))
 console.log(process.env.DOMAIN);
 console.log(DOMAIN)
@@ -1363,35 +1363,23 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     }
 
     // Gestion des différents types d'événements
-    switch (event.type) {
-        case 'charge.succeeded':
-          const chargeSucceeded = event.data.object;
-          // Then define and call a function to handle the event charge.succeeded
-          break;
+        switch (event.type) {
         case 'checkout.session.completed':
-          const checkoutSessionCompleted = event.data.object;
-          // Then define and call a function to handle the event checkout.session.completed
-          break;
-        case 'customer.subscription.created':
-          const customerSubscriptionCreated = event.data.object;
-          // Then define and call a function to handle the event customer.subscription.created
-          break;
-        case 'customer.subscription.updated':
-          const customerSubscriptionUpdated = event.data.object;
-          // Then define and call a function to handle the event customer.subscription.updated
-          break;
-        case 'invoice.payment_succeeded':
-          const invoicePaymentSucceeded = event.data.object;
-          // Then define and call a function to handle the event invoice.payment_succeeded
-          break;
+            await handleCheckoutSessionCompleted(event.data.object);
+            break;
+        case 'charge.succeeded':
         case 'payment_intent.succeeded':
-          const paymentIntentSucceeded = event.data.object;
-          // Then define and call a function to handle the event payment_intent.succeeded
-          break;
-        // ... handle other event types
+        case 'invoice.payment_succeeded':
+            console.log(`Payment succeeded for event type ${event.type}`);
+            break;
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+            console.log(`Subscription event type ${event.type} handled`);
+            break;
         default:
-          console.log(`Unhandled event type ${event.type}`);
-      }
+            console.log(`Unhandled event type ${event.type}`);
+            break;
+        }
 
     res.status(200).send('Received');
 });
