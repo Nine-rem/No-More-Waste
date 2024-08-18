@@ -2,6 +2,6 @@ back/db*
 back/node_modules
 dist
 front/node_modules
-front/package*
+front/package-lock.json
 *.env*
 *.exe

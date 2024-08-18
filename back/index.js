@@ -3,7 +3,7 @@ Définition des constantes
 ---------------------------------------------------------- */
 
 require('dotenv').config();
-const DOMAIN = process.env.DOMAIN;
+const DOMAIN = "https://nomorewaste.site";
 const express = require('express')
 const app = express()
 const connection = require('./db-connection.js');
@@ -23,9 +23,11 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // app.use(express.json());
 app.use(cors({
   credentials: true,
-  origin: DOMAIN
+  origin: 'https://www.nomorewaste.site'
 }))
-
+console.log(process.env.DOMAIN);
+console.log(DOMAIN)
+console.log(process.env.SECRET_KEY);
 
  
 app.use(cookieParser());
@@ -1075,11 +1077,12 @@ app.post('/api/create-subscription', express.json(), async (req, res) => {
                 payment_method_types: ['card'],
                 line_items: [{ price: price_id, quantity: 1 }],
                 mode: 'subscription',
-                success_url: `${process.env.DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${process.env.DOMAIN}/account?canceled=true`,
+                success_url: `${DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${DOMAIN}/account?canceled=true`,
                 customer: customerId,
                 metadata: { userId, idSubscription },
             });
+            console.log(DOMAIN)
 
             res.json({ url: session.url });
         });
@@ -1344,7 +1347,7 @@ app.get('/api/subscription/:id', express.json(), (req, res) => {
 
     Stripe Webhooks
 ---------------------------------------------------------- */
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const endpointSecret = "we_1PpGXVGtnpoEQDI2XCub0F2Y";
 app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
@@ -1352,7 +1355,7 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     console.log('Webhook reçu');
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
         console.log('Événement Stripe validé:', event.type);
     } catch (err) {
         console.log('⚠️  Webhook signature verification failed.', err.message);
