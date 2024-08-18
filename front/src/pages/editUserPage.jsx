@@ -1,32 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Form, Button, Col, Row } from "react-bootstrap";
+import { Form, Button, Col, Row, Alert } from "react-bootstrap";
 
 export default function EditUserPage() {
     const { id } = useParams(); // Récupère l'ID de l'utilisateur à partir des paramètres d'URL
     const navigate = useNavigate();
     const [userData, setUserData] = useState({
-        lastName: '',
-        firstName: '',
+        lastname: '',
+        firstname: '',
         birthdate: '',
         address: '',
         city: '',
         postalCode: '',
         phoneNumber: '',
         email: '',
-        password: '',
-        confirmPassword: ''
     });
     const [fieldErrors, setFieldErrors] = useState({});
+    const [successMessage, setSuccessMessage] = useState(""); // État pour le message de succès
 
     useEffect(() => {
         // Charger les données de l'utilisateur à modifier
         axios.get(`/api/users/${id}`, { withCredentials: true })
-        
             .then(response => {
                 const user = response.data;
-                console.log(user);
                 setUserData({
                     lastname: user.lastname,
                     firstname: user.firstname,
@@ -36,8 +33,6 @@ export default function EditUserPage() {
                     postalCode: user.postalCode,
                     phoneNumber: user.phoneNumber,
                     email: user.email,
-                    password: '',
-                    confirmPassword: ''
                 });
             })
             .catch(error => {
@@ -55,31 +50,31 @@ export default function EditUserPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Valider les données avant de les envoyer
-        if (userData.password !== userData.confirmPassword) {
-            setFieldErrors({ confirmPassword: "Les mots de passe ne correspondent pas" });
-            return;
-        }
+        setFieldErrors({});
+        setSuccessMessage(""); // Réinitialiser le message de succès
 
         axios.put(`/api/users/${id}`, userData, { withCredentials: true })
-            .then(() => {
-                // Redirection après mise à jour réussie
-                navigate('/account/admin/users');
+            .then(response => {
+                setSuccessMessage("Utilisateur mis à jour avec succès !");
+                setTimeout(() => {
+                    navigate('/account/');
+                }, 2000);
             })
             .catch(error => {
-                console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
                 if (error.response && error.response.data) {
                     setFieldErrors(error.response.data.errors || {});
                 }
+                console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
             });
     };
 
     return (
-        <div id="editUser" className="container">
-            <h1 className="text-4xl text-center">Modifier un utilisateur</h1>
+        <div id="editUser" className="container mt-5">
+            <h1 className="text-center mb-4">Modifier un utilisateur</h1>
+            {successMessage && <Alert variant="success">{successMessage}</Alert>} {/* Message de succès */}
             <Form onSubmit={handleSubmit}>
                 {/* Champ Nom */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextLastName">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Nom
                     </Form.Label>
@@ -97,7 +92,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Prénom */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextFirstName">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Prénom
                     </Form.Label>
@@ -115,7 +110,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Date de naissance */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextBirthdate">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Date de naissance
                     </Form.Label>
@@ -132,7 +127,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Adresse */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextAddress">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Adresse
                     </Form.Label>
@@ -150,7 +145,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Ville */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextCity">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">Ville</Form.Label>
                     <Col sm="10">
                         <Form.Control 
@@ -166,7 +161,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Code postal */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextPostalCode">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Code postal
                     </Form.Label>
@@ -184,7 +179,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Téléphone */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextPhone">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Numéro de téléphone
                     </Form.Label>
@@ -202,7 +197,7 @@ export default function EditUserPage() {
                 </Form.Group>
 
                 {/* Champ Email */}
-                <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
+                <Form.Group as={Row} className="mb-3">
                     <Form.Label column sm="2">
                         Email
                     </Form.Label>
@@ -219,7 +214,6 @@ export default function EditUserPage() {
                     </Col>
                 </Form.Group>
         
-
                 {/* Bouton de soumission */}
                 <Row>
                     <Col sm="12">

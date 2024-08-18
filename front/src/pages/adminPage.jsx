@@ -28,6 +28,10 @@ function AdminPage() {
             <Link to="/account/admin/subscriptions">
                 <Button variant="primary">Liste des abonnements</Button>
             </Link>
+            <Link to="/account/admin/volunteer/applications">
+                <Button variant="primary">Gestions des services</Button>
+            </Link>
+                
         </div>
     );
 }

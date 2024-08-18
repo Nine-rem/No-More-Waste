@@ -3,11 +3,9 @@ import '../style/style.css';
 import Hero from '../components/hero';
 import OurMission from '../components/ourMission';
 import AboutUs from '../components/aboutUs';
-import Reviews from '../components/reviews';
-import Merchant from '../components/merchant';
-import ServiceProviders from '../components/serviceProviders';
 
 import Head from '../components/head';
+import OurServices from '../components/ourServices';
 
 export default function IndexPage() {
   return (
@@ -17,9 +15,8 @@ export default function IndexPage() {
       <Hero />
       <OurMission />
       <AboutUs />
-      <Reviews />
-      <Merchant />
-      <ServiceProviders />
+      <OurServices />
+
 
     </div>
     </>

@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS belongs;
 DROP TABLE IF EXISTS possesses;
 DROP TABLE IF EXISTS reserved;
 DROP TABLE IF EXISTS timeslot;
+DROP TABLE IF EXISTS volunteer_application;
 
 
 DROP TABLE IF EXISTS SERVICE;
@@ -77,7 +78,18 @@ CREATE TABLE SUBSCRIPTION (
 -- Table: SERVICE
 CREATE TABLE SERVICE (
     idService INTEGER AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255)
+    name VARCHAR(255),
+    description TEXT
+);
+
+CREATE TABLE volunteer_application(
+    idApplication INTEGER AUTO_INCREMENT PRIMARY KEY,
+    idUser INTEGER,
+    idService INTEGER,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    submittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idUser) REFERENCES USER(idUser),
+    FOREIGN KEY (idService) REFERENCES SERVICE(idService)
 );
 -- Table: possesses (Many-to-Many relationship between PHOTO and PRODUCT)
 CREATE TABLE possesses (
@@ -133,6 +145,11 @@ CREATE TABLE reserved (
     FOREIGN KEY (idUser) REFERENCES USER(idUser),
     FOREIGN KEY (idTimeslot) REFERENCES timeslot(idTimeslot)
 );
+
+ALTER TABLE PRODUCT 
+ADD COLUMN category ENUM('alimentaire', 'non-alimentaire') NOT NULL,
+ADD COLUMN brand VARCHAR(255),
+ADD COLUMN expiryDate DATE NULL;
 
 
 INSERT INTO USER(email, password, firstname, lastname, address, city, postalCode, country, phoneNumber, birthdate, isAdmin, isMerchant, isVolunteer) VALUES

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Button, Form, Alert, Col, Row, Card } from "react-bootstrap";
 import axios from "axios";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import "../style/merchantEditProductPage.css";
-import { UserContext } from "../userContext";
+import { UserContext } from "../userContext.jsx";
+import JsBarcode from "jsbarcode";
 
 function MerchantEditProductPage() {
     const { user, ready } = useContext(UserContext);
@@ -14,20 +15,38 @@ function MerchantEditProductPage() {
         reference: "",
         description: "",
         stock: "",
+        category: "non-alimentaire",
+        brand: "",
+        expiryDate: "",
     });
-    const [photos, setPhotos] = useState([]);  // Pour stocker les photos existantes
+    const [photos, setPhotos] = useState([]);
+    const [photosToRemove, setPhotosToRemove] = useState([]); // Nouvelle liste pour suivre les photos à supprimer
     const [newPhotos, setNewPhotos] = useState([]);
     const [previewNewPhotos, setPreviewNewPhotos] = useState([]);
     const [altDescriptions, setAltDescriptions] = useState({});
     const [errorMessage, setErrorMessage] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");  // État pour le message de succès
+    const [successMessage, setSuccessMessage] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [referenceError, setReferenceError] = useState("");
 
-    // Vérifie si l'utilisateur est prêt (chargé) et connecté
     useEffect(() => {
         if (ready && user && user.idUser) {
             axios.get(`/api/users/${user.idUser}/products/${productId}`)
                 .then(response => {
-                    setProduct(response.data);
+                    const fetchedProduct = response.data;
+                    setProduct({
+                        name: fetchedProduct.name,
+                        reference: fetchedProduct.reference,
+                        description: fetchedProduct.description,
+                        stock: fetchedProduct.stock,
+                        category: fetchedProduct.category,
+                        brand: fetchedProduct.brand,
+                        expiryDate: fetchedProduct.expiryDate,
+                    });
+                    JsBarcode("#barcode", fetchedProduct.reference, {
+                        format: "CODE128",
+                        displayValue: true,
+                    });
                 })
                 .catch(error => {
                     console.error("Erreur lors de la récupération du produit:", error);
@@ -45,26 +64,36 @@ function MerchantEditProductPage() {
         }
     }, [ready, user, productId]);
 
-    // Si l'utilisateur n'est pas encore prêt (chargé), afficher un message de chargement
     if (!ready) {
-        return <div>Chargement...</div>;
+        return;
     }
 
-    // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
     if (!user || !user.idUser) {
         return <Navigate to="/login" />;
     }
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setProduct({ ...product, [name]: value });
-    };
-
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        const filePreviews = files.map(file => URL.createObjectURL(file));
-        setNewPhotos([...newPhotos, ...files]);
-        setPreviewNewPhotos([...previewNewPhotos, ...filePreviews]);
+        const { name, value, files } = e.target;
+        if (name === "reference") {
+            const referenceRegex = /^\d*$/; // Regex pour vérifier que seuls les chiffres sont autorisés
+            if (!referenceRegex.test(value)) {
+                setReferenceError("La référence doit contenir uniquement des chiffres.");
+            } else {
+                setReferenceError("");
+                setProduct({ ...product, [name]: value });
+                JsBarcode("#barcode", value, {
+                    format: "CODE128",
+                    displayValue: true,
+                });
+            }
+        } else if (name === "images") {
+            const imageFiles = Array.from(files);
+            const imagePreviews = imageFiles.map((file) => URL.createObjectURL(file));
+            setNewPhotos([...newPhotos, ...imageFiles]);
+            setPreviewNewPhotos([...previewNewPhotos, ...imagePreviews]);
+        } else {
+            setProduct({ ...product, [name]: value });
+        }
     };
 
     const handleAltDescriptionChange = (e, index) => {
@@ -72,16 +101,9 @@ function MerchantEditProductPage() {
         setAltDescriptions({ ...altDescriptions, [index]: value });
     };
 
-    // Modification ici : Utilisation de l'API pour supprimer une photo
     const handleRemoveExistingPhoto = (photoId) => {
-        axios.delete(`/api/photos/${photoId}`)
-            .then(response => {
-                setPhotos(photos.filter(photo => photo.idPhoto !== photoId));
-            })
-            .catch(error => {
-                console.error("Erreur lors de la suppression de la photo:", error);
-                setErrorMessage("Erreur lors de la suppression de la photo");
-            });
+        setPhotosToRemove([...photosToRemove, photoId]); // Ajouter l'ID de la photo à la liste de suppression
+        setPhotos(photos.filter(photo => photo.idPhoto !== photoId)); // Retirer de l'affichage
     };
 
     const handleRemoveNewPhoto = (index) => {
@@ -101,13 +123,25 @@ function MerchantEditProductPage() {
         e.preventDefault();
 
         setErrorMessage("");
-        setSuccessMessage("");  // Réinitialiser le message de succès
+        setSuccessMessage("");
+        setFieldErrors({});
+
+        // Vérifiez que la catégorie n'est pas undefined
+        const categoryValue = product.category || 'non-alimentaire';
 
         const formData = new FormData();
         formData.append("name", product.name);
         formData.append("reference", product.reference || "");
         formData.append("stock", product.stock || "");
         formData.append("description", product.description || "");
+        formData.append("category", categoryValue);
+        formData.append("brand", product.brand || "");
+
+        if (categoryValue === 'alimentaire') {
+            formData.append("expiryDate", product.expiryDate || "");
+        } else {
+            formData.append("expiryDate", null);
+        }
 
         newPhotos.forEach((photo, index) => {
             formData.append("images", photo);
@@ -121,6 +155,13 @@ function MerchantEditProductPage() {
                 },
                 withCredentials: true
             });
+
+            // Supprimer les photos marquées après la mise à jour du produit
+            await Promise.all(
+                photosToRemove.map(photoId =>
+                    axios.delete(`/api/photos/${photoId}`)
+                )
+            );
 
             setSuccessMessage("Produit mis à jour avec succès !");
             setNewPhotos([]);
@@ -146,7 +187,7 @@ function MerchantEditProductPage() {
             {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
             {successMessage && <Alert variant="success">{successMessage}</Alert>}
             <Form onSubmit={handleSubmit}>
-                <Form.Group htmlFor="formProductName">
+                <Form.Group controlId="formProductName">
                     <Form.Label>Nom du produit</Form.Label>
                     <Form.Control
                         type="text"
@@ -155,19 +196,24 @@ function MerchantEditProductPage() {
                         onChange={handleChange}
                         required
                     />
+                    {fieldErrors.name && <p className="text-danger">{fieldErrors.name}</p>}
                 </Form.Group>
 
-                <Form.Group htmlFor="formProductReference">
+                <Form.Group controlId="formProductReference">
                     <Form.Label>Référence</Form.Label>
                     <Form.Control
                         type="text"
                         name="reference"
                         value={product.reference}
                         onChange={handleChange}
+                        required
                     />
+                    {referenceError && <p className="text-danger">{referenceError}</p>}
+                    {fieldErrors.reference && <p className="text-danger">{fieldErrors.reference}</p>}
+                    <svg id="barcode"></svg> {/* Zone de rendu du code-barres */}
                 </Form.Group>
 
-                <Form.Group htmlFor="formProductDescription">
+                <Form.Group controlId="formProductDescription">
                     <Form.Label>Description</Form.Label>
                     <Form.Control
                         type="text"
@@ -175,9 +221,10 @@ function MerchantEditProductPage() {
                         value={product.description}
                         onChange={handleChange}
                     />
+                    {fieldErrors.description && <p className="text-danger">{fieldErrors.description}</p>}
                 </Form.Group>
 
-                <Form.Group htmlFor="formProductStock">
+                <Form.Group controlId="formProductStock">
                     <Form.Label>Stock</Form.Label>
                     <Form.Control
                         type="number"
@@ -185,10 +232,44 @@ function MerchantEditProductPage() {
                         value={product.stock}
                         onChange={handleChange}
                     />
+                    {fieldErrors.stock && <p className="text-danger">{fieldErrors.stock}</p>}
                 </Form.Group>
 
-                <Form.Group>
-                    <Form.Label>Photos existantes</Form.Label>
+                <Form.Group controlId="formProductCategory">
+                    <Form.Label>Catégorie</Form.Label>
+                    <Form.Control as="select" name="category" value={product.category} onChange={handleChange} required>
+                        <option value="alimentaire">Alimentaire</option>
+                        <option value="non-alimentaire">Non-alimentaire</option>
+                    </Form.Control>
+                    {fieldErrors.category && <p className="text-danger">{fieldErrors.category}</p>}
+                </Form.Group>
+
+                <Form.Group controlId="formProductBrand">
+                    <Form.Label>Marque</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="brand"
+                        value={product.brand}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                {product.category === 'alimentaire' && (
+                    <Form.Group controlId="formProductExpiryDate">
+                        <Form.Label>Date de péremption</Form.Label>
+                        <Form.Control
+                            type="date"
+                            name="expiryDate"
+                            value={product.expiryDate}
+                            onChange={handleChange}
+                            required
+                        />
+                        {fieldErrors.expiryDate && <p className="text-danger">{fieldErrors.expiryDate}</p>}
+                    </Form.Group>
+                )}
+
+                <Form.Group controlId="formProductImages">
+                    <Form.Label>Images</Form.Label>
                     <Row className="image-previews">
                         {photos.map((photo, index) => (
                             <Col key={photo.idPhoto} xs={6} md={4} lg={3}>
@@ -204,11 +285,7 @@ function MerchantEditProductPage() {
                             </Col>
                         ))}
                     </Row>
-                </Form.Group>
-
-                <Form.Group htmlFor="formNewPhotos">
-                    <Form.Label>Ajouter de nouvelles photos</Form.Label>
-                    <div onClick={() => document.getElementById("newImageUploadInput").click()} className="image-upload-placeholder">
+                    <div onClick={() => document.getElementById("imageUploadInput").click()} className="image-upload-placeholder">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
                         </svg>
@@ -216,9 +293,9 @@ function MerchantEditProductPage() {
                     </div>
                     <Form.Control
                         type="file"
-                        name="newPhotos"
-                        id="newImageUploadInput"
-                        onChange={handleFileChange}
+                        name="images"
+                        id="imageUploadInput"
+                        onChange={handleChange}
                         multiple
                         style={{ display: "none" }}
                     />

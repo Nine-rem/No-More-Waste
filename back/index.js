@@ -20,13 +20,13 @@ const { format } = require('date-fns');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 //middleware
-app.use(express.json());
+// app.use(express.json());
 app.use(cors({
   credentials: true,
   origin: DOMAIN
 }))
-app.use(express.json())
-console.log(process.env.STRIPE_SECRET_KEY)
+
+
  
 app.use(cookieParser());
 app.use("/uploads",express.static(__dirname + '/uploads'));
@@ -41,7 +41,7 @@ const { error } = require('console');
 
 // Inscription
 //inscription de l'utilisateur
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", express.json(), async (req, res) => {
     let {
         lastname:lastname,
         firstname:firstname
@@ -127,7 +127,7 @@ app.post("/api/register", async (req, res) => {
 //connexion de l'utilisateur
 
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login',express.json(), async (req, res) => {
   let { email, password } = req.body;
 
   // Nettoyage et validation de l'email
@@ -175,7 +175,7 @@ app.post('/api/login', async (req, res) => {
   });
 });
 
-app.get('/api/account', async (req, res) => {
+app.get('/api/account', express.json(), async (req, res) => {
     const token = req.cookies.token;
     if (!token) {
     return res.status(401).json({ message: 'Non authentifié' });
@@ -212,7 +212,7 @@ app.get('/api/account', async (req, res) => {
     });
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', express.json(), (req, res) => {
     res.clearCookie('token').json({ message: 'Déconnecté' });
 }
 );
@@ -239,100 +239,130 @@ app.get('/mdp', (req, res) => {
     });
 });
 
-app.put('/api/users/:id', (req, res) => {
-  const userId = req.params.id;
-  const { firstname, lastname, birthdate, address, city, postalCode, phoneNumber, email } = req.body;
+// Route pour récupérer les informations d'un utilisateur par ID
+app.get('/api/users/:id',express.json(), (req, res) => {
+    const userId = req.params.id;
+    const query = `
+        SELECT 
+            idUser,
+            email,
+            firstname,
+            lastname,
+            address,
+            city,
+            postalCode,
+            country,
+            phoneNumber,
+            DATE_FORMAT(birthdate, '%Y-%m-%d') as birthdate,
+            isBanned,
+            isAdmin,
+            isMerchant,
+            isVolunteer
+        FROM USER 
+        WHERE idUser = ?
+    `;
+    
+    connection.query(query, [userId], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des informations utilisateur:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des informations utilisateur' });
+        }
 
-  // Validation des données
-  if (!firstname || !lastname || !birthdate || !address || !city || !postalCode || !phoneNumber || !email) {
-      return res.status(400).json({ error: 'Tous les champs sont requis.' });
-  }
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
 
-  // Nettoyage des données
-  const cleanFirstname = firstname.trim();
-  const cleanLastname = lastname.trim();
-  const cleanBirthdate = birthdate.trim();
-  const cleanAddress = address.trim();
-  const cleanCity = city.trim();
-  const cleanPostalCode = postalCode.trim();
-  const cleanPhoneNumber = phoneNumber.trim();
-  const cleanEmail = email.trim().toLowerCase();
+        res.json(results[0]); // Retourne les informations de l'utilisateur
+    });
+})
+app.put('/api/users/:id',express.json(), (req, res) => {
+    const userId = req.params.id;
+    const { firstname, lastname, birthdate, address, city, postalCode, phoneNumber, email } = req.body;
+    const errors = {};
 
-  // Vérification de l'unicité de l'email
-  const checkEmailQuery = 'SELECT idUSer FROM USER WHERE email = ? AND idUser != ?';
-  connection.query(checkEmailQuery, [cleanEmail, userId], (err, results) => {
-      if (err) {
-          console.error('Erreur lors de la vérification de l\'email :', err);
-          return res.status(500).json({ error: 'Erreur de serveur' });
-      }
+    // Validation des données
+    if (!firstname || firstname.trim() === "") {
+        errors.firstname = 'Le prénom est requis.';
+    }
+    if (!lastname || lastname.trim() === "") {
+        errors.lastname = 'Le nom est requis.';
+    }
+    if (!birthdate || birthdate.trim() === "") {
+        errors.birthdate = 'La date de naissance est requise.';
+    }
+    if (!address || address.trim() === "") {
+        errors.address = 'L\'adresse est requise.';
+    }
+    if (!city || city.trim() === "") {
+        errors.city = 'La ville est requise.';
+    }
+    if (!postalCode || postalCode.trim() === "") {
+        errors.postalCode = 'Le code postal est requis.';
+    }
+    if (!phoneNumber || phoneNumber.trim() === "") {
+        errors.phoneNumber = 'Le numéro de téléphone est requis.';
+    }
+    if (!email || email.trim() === "") {
+        errors.email = 'L\'email est requis.';
+    }
 
-      if (results.length > 0) {
-          return res.status(400).json({ error: 'Cet email est déjà utilisé par un autre utilisateur.' });
-      }
+    // Si des erreurs existent, les renvoyer
+    if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ errors });
+    }
 
-      // Mise à jour de l'utilisateur
-      const updateUserQuery = `
-          UPDATE USER 
-          SET firstname = ?, lastname = ?, birthdate = ?, address = ?, city = ?, postalCode = ?, phoneNumber = ?, email = ?
-          WHERE idUser = ?
-      `;
+    // Nettoyage des données
+    const cleanFirstname = firstname.trim();
+    const cleanLastname = lastname.trim();
+    const cleanBirthdate = birthdate.trim();
+    const cleanAddress = address.trim();
+    const cleanCity = city.trim();
+    const cleanPostalCode = postalCode.trim();
+    const cleanPhoneNumber = phoneNumber.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
-      connection.query(updateUserQuery, [cleanFirstname, cleanLastname, cleanBirthdate, cleanAddress, cleanCity, cleanPostalCode, cleanPhoneNumber, cleanEmail, userId], (err, results) => {
-          if (err) {
-              console.error('Erreur lors de la mise à jour de l\'utilisateur :', err);
-              return res.status(500).json({ error: 'Erreur de serveur' });
-          }
+    // Vérification de l'unicité de l'email
+    const checkEmailQuery = 'SELECT idUser FROM USER WHERE email = ? AND idUser != ?';
+    connection.query(checkEmailQuery, [cleanEmail, userId], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la vérification de l\'email :', err);
+            return res.status(500).json({ error: 'Erreur de serveur lors de la vérification de l\'email.' });
+        }
 
-          if (results.affectedRows === 0) {
-              return res.status(404).json({ error: 'Utilisateur non trouvé' });
-          }
+        if (results.length > 0) {
+            errors.email = 'Cet email est déjà utilisé par un autre utilisateur.';
+            return res.status(400).json({ errors });
+        }
 
-          res.json({ message: 'Utilisateur mis à jour avec succès' });
-      });
-  });
+        // Mise à jour de l'utilisateur
+        const updateUserQuery = `
+            UPDATE USER 
+            SET firstname = ?, lastname = ?, birthdate = ?, address = ?, city = ?, postalCode = ?, phoneNumber = ?, email = ?
+            WHERE idUser = ?
+        `;
+
+        connection.query(updateUserQuery, [cleanFirstname, cleanLastname, cleanBirthdate, cleanAddress, cleanCity, cleanPostalCode, cleanPhoneNumber, cleanEmail, userId], (err, results) => {
+            if (err) {
+                console.error('Erreur lors de la mise à jour de l\'utilisateur :', err);
+                return res.status(500).json({ error: 'Erreur de serveur lors de la mise à jour de l\'utilisateur.' });
+            }
+
+            if (results.affectedRows === 0) {
+                return res.status(404).json({ error: 'Utilisateur non trouvé.' });
+            }
+
+            res.json({ message: 'Utilisateur mis à jour avec succès.' });
+        });
+    });
 });
 
-app.patch('/api/users/:id/ban', (req, res) => {
-  const userId = req.params.id;
-
-  // Vérifier si l'utilisateur existe
-  const checkUserQuery = 'SELECT isBanned FROM USER WHERE idUSer = ?';
-  connection.query(checkUserQuery, [userId], (err, results) => {
-      if (err) {
-          console.error('Erreur lors de la vérification de l\'utilisateur :', err);
-          return res.status(500).json({ error: 'Erreur de serveur' });
-      }
-
-      if (results.length === 0) {
-          return res.status(404).json({ error: 'Utilisateur non trouvé' });
-      }
-
-      // Inverser l'état de isBanned
-      const isBanned = results[0].isBanned;
-      const newBanStatus = !isBanned;
-      const updateBanStatusQuery = 'UPDATE USER SET isBanned = ? WHERE idUser = ?';
-
-      connection.query(updateBanStatusQuery, [newBanStatus, userId], (err, updateResults) => {
-          if (err) {
-              console.error('Erreur lors de la mise à jour du statut de bannissement :', err);
-              return res.status(500).json({ error: 'Erreur de serveur' });
-          }
-
-          if (updateResults.affectedRows === 0) {
-              return res.status(404).json({ error: 'Impossible de mettre à jour le statut de bannissement' });
-          }
-
-          res.json({ message: 'Statut de bannissement mis à jour', isBanned: newBanStatus });
-      });
-  });
-});
 
 /* ----------------------------------------------------------
         Calendrier
 ---------------------------------------------------------- */
 // Récupération des créneaux horaires
 
-app.get('/api/timeslots', (req, res) => {
+app.get('/api/timeslots',express.json(), (req, res) => {
     const { date, idService } = req.query;
     const query = 'SELECT * FROM timeslot WHERE date = ? AND idService = ? AND reserved = FALSE';
     connection.query(query, [date, idService], (error, results) => {
@@ -342,7 +372,7 @@ app.get('/api/timeslots', (req, res) => {
   });
 
 
-app.get('/api/spots', (req, res) => {
+app.get('/api/spots', express.json(),(req, res) => {
     const { month, year, idService } = req.query;
     const query = `
       SELECT date, COUNT(*) as spots
@@ -365,7 +395,7 @@ app.get('/api/spots', (req, res) => {
 
     Réserver un créneau horaire
 ---------------------------------------------------------- */
-app.post('/api/users/:userId/timeslots/:idTimeslot/reserve', (req, res) => {
+app.post('/api/users/:userId/timeslots/:idTimeslot/reserve', express.json(), (req, res) => {
   const userId = req.params.userId;
   const idTimeslot = req.params.idTimeslot;
 
@@ -411,7 +441,7 @@ app.post('/api/users/:userId/timeslots/:idTimeslot/reserve', (req, res) => {
   Services
 ---------------------------------------------------------- */
 // Route pour récupérer la liste des services
-app.get('/api/services', (req, res) => {
+app.get('/api/services', express.json(), (req, res) => {
   const query = 'SELECT idService, name FROM SERVICE';
 
   connection.query(query, (error, results) => {
@@ -424,9 +454,68 @@ app.get('/api/services', (req, res) => {
   });
 });
 
+app.post('/api/volunteer/apply', express.json(), (req, res) => {
+    const { idUser, idService } = req.body;
+
+    const insertApplicationQuery = `
+        INSERT INTO volunteer_application (idUser, idService)
+        VALUES (?, ?)
+    `;
+    connection.query(insertApplicationQuery, [idUser, idService], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la soumission de la candidature:', error);
+            return res.status(500).json({ error: 'Erreur lors de la soumission de la candidature' });
+        }
+        res.json({ message: 'Candidature soumise avec succès' });
+    });
+});
+
+app.get('/api/admin/applications', express.json(), (req, res) => {
+    const query = `
+        SELECT VA.*, U.firstname, U.lastname, S.name AS serviceName 
+        FROM volunteer_application VA
+        JOIN USER U ON VA.idUser = U.idUser
+        JOIN SERVICE S ON VA.idService = S.idService
+        WHERE VA.status = 'pending'
+    `;
+    connection.query(query, (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des candidatures:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des candidatures' });
+        }
+        res.json(results);
+    });
+});
+app.patch('/api/admin/applications/:id', express.json(),(req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Statut invalide' });
+    }
+
+    const updateApplicationQuery = `
+        UPDATE volunteer_application 
+        SET status = ?
+        WHERE idApplication = ?
+    `;
+    connection.query(updateApplicationQuery, [status, id], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour de la candidature:', error);
+            return res.status(500).json({ error: 'Erreur lors de la mise à jour de la candidature' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Candidature non trouvée' });
+        }
+
+        res.json({ message: 'Statut de la candidature mis à jour avec succès' });
+    });
+});
+
 
 // Route pour récupérer les créneaux horaires disponibles pour un service à une date donnée
-app.get('/api/services/timeslots', (req, res) => {
+app.get('/api/services/timeslots', express.json(),(req, res) => {
   const { date, idService } = req.query;
 
   if (!date || !idService) {
@@ -450,7 +539,7 @@ app.get('/api/services/timeslots', (req, res) => {
 
 
 // Route pour réserver un créneau horaire
-app.post('/api/users/reserve', (req, res) => {
+app.post('/api/users/reserve', express.json(), (req, res) => {
   const { idUser, idTimeslot } = req.body;
 
   if (!idUser || !idTimeslot) {
@@ -527,79 +616,89 @@ const upload = multer({
 
 
 
-app.post('/api/products', upload.array('images'), (req, res) => {
-  const { name, reference, stock, description } = req.body;
-  const token = req.cookies.token;
-  const decoded = jwt.verify(token, secretKey);
-  const idUser = decoded.userId;
-  const photoIds = req.files.map(file => file.filename);
-  const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+app.post('/api/products', upload.array('images'), express.json(),(req, res) => {
+    const { name, reference, stock, description, category, brand, expiryDate } = req.body;
+    const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+    const errors = {};
+    const token = req.cookies.token;   
 
-  if (!Array.isArray(photoIds) || photoIds.length === 0, !name, !reference, !stock, !description) {
-      return res.status(400).send({ error: ' Tous les champs sont requis' });
-  }
+    if (!token) {
+        return res.status(401).json({ message: 'Non authentifié' });
+    }
+    const decoded = jwt.verify(token, secretKey);
+    const idUser = decoded.userId;
 
-  connection.beginTransaction(err => {
-      if (err) {
-          return res.status(500).send({ error: 'Erreur lors du démarrage de la transaction' });
-      }
+    // Validation de la référence (uniquement des chiffres)
+    if (!/^\d+$/.test(reference)) {
+        errors.reference = 'La référence doit contenir uniquement des chiffres.';
+    }
 
-      const insertProductQuery = `
-          INSERT INTO PRODUCT (name, reference, stock, description, idUser)
-          VALUES (?, ?, ?, ?, ?)
-      `;
+    // Vérification pour les produits alimentaires (date de péremption obligatoire)
+    if (category === 'alimentaire' && !expiryDate) {
+        errors.expiryDate = 'La date de péremption est requise pour les produits alimentaires.';
+    }
 
-      connection.query(insertProductQuery, [name, reference || null, stock || null, description || null, idUser], (err, productResult) => {
-          if (err) {
-              return connection.rollback(() => {
-                  res.status(500).send({ error: 'Erreur lors de l\'ajout du produit' });
-              });
-          }
+    // Vérification des champs obligatoires
+    if (!name) errors.name = 'Le nom du produit est requis.';
+    if (!stock) errors.stock = 'Le stock est requis.';
+    if (!category) errors.category = 'La catégorie est requise.';
+    
+    // Si des erreurs existent, renvoyez-les au frontend
+    if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ errors });
+    }
 
-          const productId = productResult.insertId;
+    // Log de la valeur de brand pour vérification
+    console.log("Brand:", brand);
 
-          const insertPhotoQuery = `
-              INSERT INTO PHOTO (name, path, description, idProduct, temporary)
-              VALUES (?, ?, ?, ?, ?)
-          `;
+    const query = `
+        INSERT INTO PRODUCT (name, reference, stock, description, category, brand, expiryDate, idUser)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-          const insertPhotos = photoIds.map((photoId, index) => {
-              return new Promise((resolve, reject) => {
-                  const photoName = req.files[index].originalname;
-                  const description = altDescriptions[index] || '';
-                  const temporary = false;
+    connection.query(query, [name, reference, stock, description, category, brand, category === 'alimentaire' ? expiryDate : null, idUser], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de l\'ajout du produit :', error);
+            return res.status(500).json({ error: 'Erreur de serveur' });
+        }
 
-                  connection.query(insertPhotoQuery, [photoName, photoId, description, productId, temporary], (err) => {
-                      if (err) {
-                          return reject(err);
-                      }
-                      resolve();
-                  });
-              });
-          });
+        const productId = results.insertId;
 
-          Promise.all(insertPhotos)
-              .then(() => {
-                  connection.commit(err => {
-                      if (err) {
-                          return connection.rollback(() => {
-                              res.status(500).send({ error: 'Erreur lors de la validation de la transaction' });
-                          });
-                      }
-                      res.status(200).send({ message: 'Produit ajouté avec succès!' });
-                  });
-              })
-              .catch(err => {
-                  connection.rollback(() => {
-                      res.status(500).send({ error: 'Erreur lors de l\'ajout des photos' });
-                  });
-              });
-      });
-  });
+        if (req.files && req.files.length > 0) {
+            const insertPhotoQuery = `
+                INSERT INTO PHOTO (idProduct, path, description, temporary)
+                VALUES (?, ?, ?, ?)
+            `;
+
+            const photoInserts = req.files.map((file, index) => {
+                return new Promise((resolve, reject) => {
+                    connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            });
+
+            Promise.all(photoInserts)
+                .then(() => {
+                    res.json({ message: 'Produit ajouté avec succès, y compris les photos.' });
+                })
+                .catch(err => {
+                    console.error('Erreur lors de l\'ajout des photos :', err);
+                    res.status(500).json({ error: 'Erreur lors de l\'ajout des photos' });
+                });
+        } else {
+            res.json({ message: 'Produit ajouté avec succès.' });
+        }
+    });
 });
 
 
-app.get('/api/users/:idUser/products', (req, res) => {
+
+app.get('/api/users/:idUser/products', express.json(),(req, res) => {
   const idUser = req.params.idUser;
 
   const query = `
@@ -624,6 +723,7 @@ app.get('/api/users/:idUser/products', (req, res) => {
                   name: row.name,
                   reference: row.reference,
                   stock: row.stock,
+                  brand: row.brand,
                   description: row.description,
                   photos: []
               };
@@ -641,11 +741,11 @@ app.get('/api/users/:idUser/products', (req, res) => {
   });
 });
 
-app.get('/api/users/:userId/products/:productId', (req, res) => {
+app.get('/api/users/:userId/products/:productId', express.json(),(req, res) => {
   const { userId, productId } = req.params;
 
   const productQuery = `
-      SELECT p.idProduct, p.name, p.reference, p.stock, p.description, ph.idPhoto, ph.path, ph.description as photoDescription
+      SELECT p.idProduct, p.name, p.reference, p.stock, p.description, ph.idPhoto, ph.path, ph.description as photoDescription, p.brand
       FROM PRODUCT p
       LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
       WHERE p.idProduct = ? AND p.idUser = ?
@@ -666,7 +766,8 @@ app.get('/api/users/:userId/products/:productId', (req, res) => {
           name: results[0].name,
           reference: results[0].reference,
           stock: results[0].stock,
-          description: results[0].description
+          description: results[0].description,
+          brand: results[0].brand
       };
     
 
@@ -674,7 +775,7 @@ app.get('/api/users/:userId/products/:productId', (req, res) => {
   });
 });
 
-app.get('/api/products/:productId/photos', (req, res) => {
+app.get('/api/products/:productId/photos', express.json(),(req, res) => {
   const { productId } = req.params;
   
   const getPhotosQuery = `
@@ -700,7 +801,7 @@ app.get('/api/products/:productId/photos', (req, res) => {
 });
 
 
-app.delete('/api/photos/:photoId',(req, res) => {
+app.delete('/api/photos/:photoId',express.json(),(req, res) => {
     const { photoId } = req.params;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -750,75 +851,83 @@ app.delete('/api/photos/:photoId',(req, res) => {
     });
 });
 
-app.put('/api/products/:productId', upload.array('images'), (req, res) => {
-  const productId = req.params.productId;
-  const { name, reference, stock, description } = req.body;
-  const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+app.put('/api/products/:productId', upload.array('images'),express.json(), (req, res) => {
+    const productId = req.params.productId;
+    const { name, reference, stock, description, category, brand, expiryDate } = req.body;
+    const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+    const errors = {};
 
-  console.log("Body:", req.body);
-  console.log("Files:", req.files);
-  console.log("Params:", req.params);
-
-    // Vérification que tous les champs requis sont présents
-  if (!name || !reference || !stock || !description) {
-    return res.status(400).send({ error: 'Tous les champs sont requis.' });
+    // Validation de la référence (uniquement des chiffres)
+    if (!/^\d+$/.test(reference)) {
+        errors.reference = 'La référence doit contenir uniquement des chiffres.';
     }
 
-  // Vérification de la présence et de la validité des fichiers
-  if (!req.files || req.files.length === 0 || req.files.some(file => file.size === 0)) {
-      console.error("Aucun fichier valide n'a été téléchargé.");
-      return res.status(400).send({ error: 'Aucun fichier valide n\'a été téléchargé.' });
-  }
+    // Vérification pour les produits alimentaires (date de péremption obligatoire)
+    if (category === 'alimentaire' && !expiryDate) {
+        errors.expiryDate = 'La date de péremption est requise pour les produits alimentaires.';
+    }
 
-  // Mise à jour des informations du produit
-  const query = 'UPDATE PRODUCT SET name = ?, reference = ?, stock = ?, description = ? WHERE idProduct = ?';
-  connection.query(query, [name, reference, stock, description, productId], (error, results) => {
-      if (error) {
-          console.error('Erreur lors de la mise à jour du produit:', error);
-          return res.status(500).json({ message: 'Erreur de serveur' });
-      }
+    // Vérification des champs obligatoires
+    if (!name) errors.name = 'Le nom du produit est requis.';
+    if (!stock) errors.stock = 'Le stock est requis.';
+    if (!category) errors.category = 'La catégorie est requise.';
+    
+    // Si des erreurs existent, renvoyez-les au frontend
+    if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ errors });
+    }
 
-      if (results.affectedRows === 0) {
-          return res.status(404).json({ message: 'Produit non trouvé' });
-      }
+    const query = `
+        UPDATE PRODUCT 
+        SET name = ?, reference = ?, stock = ?, description = ?, category = ?, brand = ?, expiryDate = ?
+        WHERE idProduct = ?
+    `;
 
-      // Gestion des nouvelles photos
-      if (req.files && req.files.length > 0) {
-          const insertPhotoQuery = `
-              INSERT INTO PHOTO (idProduct, path, description, temporary)
-              VALUES (?, ?, ?, ?)
-          `;
+    connection.query(query, [name, reference, stock, description, category, brand, category === 'alimentaire' ? expiryDate : null, productId], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour du produit :', error);
+            return res.status(500).json({ error: 'Erreur de serveur' });
+        }
 
-          const photoInserts = req.files.map((file, index) => {
-              return new Promise((resolve, reject) => {
-                  // Insertion de la photo si elle n'est pas vide (taille > 0)
-                  connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
-                      if (err) {
-                          reject(err);
-                      } else {
-                          resolve();
-                      }
-                  });
-              });
-          });
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Produit non trouvé' });
+        }
 
-          Promise.all(photoInserts)
-              .then(() => {
-                  res.json({ message: 'Produit mis à jour avec succès, y compris les nouvelles photos.' });
-              })
-              .catch(err => {
-                  console.error('Erreur lors de l\'ajout des nouvelles photos:', err);
-                  res.status(500).json({ message: 'Erreur lors de l\'ajout des nouvelles photos' });
-              });
-      } else {
-          res.json({ message: 'Produit mis à jour avec succès.' });
-      }
-  });
+        // Gestion des nouvelles photos
+        if (req.files && req.files.length > 0) {
+            const insertPhotoQuery = `
+                INSERT INTO PHOTO (idProduct, path, description, temporary)
+                VALUES (?, ?, ?, ?)
+            `;
+
+            const photoInserts = req.files.map((file, index) => {
+                return new Promise((resolve, reject) => {
+                    connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            });
+
+            Promise.all(photoInserts)
+                .then(() => {
+                    res.json({ message: 'Produit mis à jour avec succès, y compris les nouvelles photos.' });
+                })
+                .catch(err => {
+                    console.error('Erreur lors de l\'ajout des nouvelles photos :', err);
+                    res.status(500).json({ error: 'Erreur lors de l\'ajout des nouvelles photos' });
+                });
+        } else {
+            res.json({ message: 'Produit mis à jour avec succès.' });
+        }
+    });
 });
 
 
-
-app.delete('/api/products/:productId',(req, res) => {
+app.delete('/api/products/:productId',express.json(), (req, res) => {
     const productId = req.params.productId;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -852,7 +961,7 @@ app.delete('/api/products/:productId',(req, res) => {
       Services
 ---------------------------------------------------------- */
 
-app.get('/api/users/:userId/services', (req, res) => {
+app.get('/api/users/:userId/services', express.json(), (req, res) => {
   const userId = req.params.userId;
 
   const query = `
@@ -938,7 +1047,7 @@ function getCustomerIdFromDatabase(userId) {
 }
 
 
-app.post('/api/create-subscription', async (req, res) => {
+app.post('/api/create-subscription', express.json(), async (req, res) => {
     const { idSubscription } = req.body;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -969,6 +1078,7 @@ app.post('/api/create-subscription', async (req, res) => {
                 success_url: `${process.env.DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.DOMAIN}/account?canceled=true`,
                 customer: customerId,
+                metadata: { userId, idSubscription },
             });
 
             res.json({ url: session.url });
@@ -981,7 +1091,7 @@ app.post('/api/create-subscription', async (req, res) => {
 
 
 
-app.post('/api/unsubscribe', async (req, res) => {
+app.post('/api/unsubscribe', express.json(), async (req, res) => {
     const { idSubscription } = req.body;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
@@ -1029,7 +1139,7 @@ app.post('/api/unsubscribe', async (req, res) => {
 });
 
 
-app.get('/api/subscriptions', (req, res) => {
+app.get('/api/subscriptions', express.json(), (req, res) => {
     const query = 'SELECT * FROM SUBSCRIPTION';
 
     connection.query(query, (error, results) => {
@@ -1042,7 +1152,7 @@ app.get('/api/subscriptions', (req, res) => {
     });
 });
 
-app.get('/api/user-subscriptions/:idUser', (req, res) => {
+app.get('/api/user-subscriptions/:idUser', express.json(),(req, res) => {
     const { idUser } = req.params;
 
     const query = `
@@ -1068,7 +1178,7 @@ app.get('/api/user-subscriptions/:idUser', (req, res) => {
    Admin - Utilisateurs
 ---------------------------------------------------------- */
 
-app.get('/api/users', (req, res) => {
+app.get('/api/users', express.json(), (req, res) => {
     const query = 'SELECT * FROM USER';
     connection.query(query, (error, results) => {
       if (error) throw error;
@@ -1078,7 +1188,7 @@ app.get('/api/users', (req, res) => {
 );
 
 
-app.patch('/api/users/:id/ban', (req, res) => {
+app.patch('/api/users/:id/ban', express.json(), (req, res) => {
   const userId = req.params.id;
   connection.query('SELECT banned FROM users WHERE id = ?', [userId], (err, results) => {
       if (err) {
@@ -1112,7 +1222,7 @@ app.patch('/api/users/:id/ban', (req, res) => {
 
 
 
-app.post('/api/subscription', async (req, res) => {
+app.post('/api/subscription', express.json(), async (req, res) => {
     const { name, price, description, frequency } = req.body;
 
     // Valider les données
@@ -1156,7 +1266,7 @@ app.post('/api/subscription', async (req, res) => {
 
 
 
-app.put('/api/subscription/:id', async (req, res) => {
+app.put('/api/subscription/:id', express.json(), async (req, res) => {
     const { id } = req.params;
     const { name, price, price_id, description, frequency } = req.body;
 
@@ -1190,7 +1300,7 @@ app.put('/api/subscription/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/subscription/:id', (req, res) => {
+app.delete('/api/subscription/:id', express.json(), (req, res) => {
     const { id } = req.params;
 
     const query = 'DELETE FROM SUBSCRIPTION WHERE idSubscription = ?';
@@ -1211,7 +1321,7 @@ app.delete('/api/subscription/:id', (req, res) => {
 
 
 
-app.get('/api/subscription/:id', (req, res) => {
+app.get('/api/subscription/:id', express.json(), (req, res) => {
     const { id } = req.params;
     const query = 'SELECT * FROM SUBSCRIPTION WHERE idSubscription = ?';
 
@@ -1234,65 +1344,93 @@ app.get('/api/subscription/:id', (req, res) => {
 
     Stripe Webhooks
 ---------------------------------------------------------- */
-
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
+app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-
     let event;
+
+    console.log('Webhook reçu');
+
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        console.log('Événement Stripe validé:', event.type);
     } catch (err) {
-        console.log(`⚠️  Webhook signature verification failed.`, err.message);
+        console.log('⚠️  Webhook signature verification failed.', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the event
+    // Gestion des différents types d'événements
     switch (event.type) {
+        case 'charge.succeeded':
+          const chargeSucceeded = event.data.object;
+          // Then define and call a function to handle the event charge.succeeded
+          break;
         case 'checkout.session.completed':
-            const session = event.data.object;
-
-            // Extraire les informations de la session
-            const customerId = session.customer;
-            const subscriptionId = session.subscription; // ID de l'abonnement Stripe
-            const userId = getUserIdFromCustomerId(customerId); // Votre fonction pour récupérer l'ID utilisateur
-
-            // Mettre à jour la base de données
-            const query = `
-                INSERT INTO subscribe (idUser, idSubscription, stripeSubscriptionId)
-                VALUES (?, ?, ?)
-            `;
-            connection.query(query, [userId, session.metadata.idSubscription, subscriptionId], (error, results) => {
-                if (error) {
-                    console.error('Erreur lors de l\'insertion de l\'abonnement dans la base de données:', error);
-                    return res.status(500).json({ error: 'Erreur lors de l\'insertion de l\'abonnement dans la base de données' });
-                }
-
-                console.log('Abonnement ajouté à la base de données pour l\'utilisateur:', userId);
-            });
-
-            break;
+          const checkoutSessionCompleted = event.data.object;
+          // Then define and call a function to handle the event checkout.session.completed
+          break;
+        case 'customer.subscription.created':
+          const customerSubscriptionCreated = event.data.object;
+          // Then define and call a function to handle the event customer.subscription.created
+          break;
+        case 'customer.subscription.updated':
+          const customerSubscriptionUpdated = event.data.object;
+          // Then define and call a function to handle the event customer.subscription.updated
+          break;
+        case 'invoice.payment_succeeded':
+          const invoicePaymentSucceeded = event.data.object;
+          // Then define and call a function to handle the event invoice.payment_succeeded
+          break;
+        case 'payment_intent.succeeded':
+          const paymentIntentSucceeded = event.data.object;
+          // Then define and call a function to handle the event payment_intent.succeeded
+          break;
+        // ... handle other event types
         default:
-            console.log(`Unhandled event type ${event.type}`);
-    }
+          console.log(`Unhandled event type ${event.type}`);
+      }
 
-    res.send();
+    res.status(200).send('Received');
 });
 
+async function handleCheckoutSessionCompleted(session) {
+    try {
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
+        const userId = await getUserIdFromCustomerId(customerId);
+
+        const query = `
+            INSERT INTO subscribed (idUser, idSubscription, stripeSubscriptionId)
+            VALUES (?, ?, ?)
+        `;
+        connection.query(query, [userId, session.metadata.idSubscription, subscriptionId], (error, results) => {
+            if (error) {
+                console.error('Erreur lors de l\'insertion de l\'abonnement dans la base de données:', error);
+                return;
+            }
+            console.log('Abonnement ajouté à la base de données pour l\'utilisateur:', userId);
+        });
+    } catch (error) {
+        console.error('Erreur lors du traitement de l\'événement checkout.session.completed:', error);
+    }
+}
+
 // Fonction pour récupérer l'ID utilisateur en fonction de l'ID du client Stripe
-function getUserIdFromCustomerId(customerId) {
+async function getUserIdFromCustomerId(customerId) {
     return new Promise((resolve, reject) => {
         const query = 'SELECT idUser FROM USER WHERE stripeCustomerId = ?';
         connection.query(query, [customerId], (error, results) => {
             if (error) {
                 return reject(error);
             }
-            resolve(results[0].idUser);
+            if (results.length > 0) {
+                resolve(results[0].idUser);
+            } else {
+                reject(new Error('Utilisateur non trouvé pour ce customerId.'));
+            }
         });
     });
 }
-
 /* ----------------------------------------------------------
       Démarrage du serveur
 ---------------------------------------------------------- */

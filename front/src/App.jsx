@@ -12,11 +12,16 @@ import CookiesPage from './pages/cookiesPage.jsx';
 import ServiceTermsPage from './pages/serviceTermsPage.jsx';
 import ContactPage from './pages/contactPage.jsx';
 import AccountPage from './pages/accountPage.jsx';
+import EditUserPage from './pages/editUserPage.jsx';
 
 
 import ServicesPage from './pages/servicesPage.jsx';
-import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
+
+import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
+import VolunteerApplyPage from './pages/volunteerApplyPage.jsx';
+
+
 
 import MerchantPage from './pages/merchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
@@ -25,16 +30,17 @@ import MerchantEditProductPage from './pages/merchantEditProductPage.jsx';
 
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
-import EditUserPage from './pages/editUserPage.jsx';
-import EditSubscriptionPage from './pages/adminEditSubscription.jsx';
+import AdminEditSubscriptionPage from './pages/adminEditSubscription.jsx';
 import AdminSubscriptionPage from './pages/adminSubscriptionPage.jsx';
 import AdminCreateSubscriptionPage from './pages/adminCreateSubscriptionPage.jsx';
+import AdminEditUserPage from './pages/adminEditUserPage.jsx';
 
 import NotFoundPage from './pages/notFoundPage.jsx';
 import Layout from './layout.jsx';
 import SubscriptionPage from './pages/subscriptionPage.jsx';
 import SuccessPage from './pages/successPage.jsx';
 import CancelledPage from './pages/cancelledPage.jsx';
+import AdminManageApplicationsPage from './pages/AdminManageApplicationsPage.jsx';
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL
 axios.defaults.withCredentials = true;
 function App() {
@@ -53,6 +59,7 @@ function App() {
           <Route path="/account/subscription" element={<SubscriptionPage />} />
 
           <Route path='/account/services' element={<ServicesPage />} />
+          <Route path='/account/volunteer/services' element={<VolunteerApplyPage />} />
 
           <Route path="/account/becomeVolunteer" element={<BecomeVolunteerPage />} />
 
@@ -64,10 +71,11 @@ function App() {
 
           <Route path="/account/admin" element={<AdminPage />} />
           <Route path="/account/admin/users" element={<UsersPage />} />
-          <Route path="account/admin/users/:id/edit" element={<EditUserPage/>} />
-          <Route path="/account/admin/subscriptions/:id/edit" element={<EditSubscriptionPage />} />
+          <Route path="/account/admin/users/:id/edit" element={<AdminEditUserPage/>} />
+          <Route path="/account/admin/subscriptions/:id/edit" element={<AdminEditSubscriptionPage />} />
           <Route path='/account/admin/subscriptions' element={<AdminSubscriptionPage />} />
           <Route path='/account/admin/subscription/create' element={<AdminCreateSubscriptionPage />} />
+          <Route path="/account/admin/volunteer/applications" element={<AdminManageApplicationsPage />} />
           
 
           <Route path="/quotation" element={<QuotationPage />} />

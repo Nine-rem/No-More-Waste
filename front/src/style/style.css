@@ -136,10 +136,7 @@ body {
   }
   
   /* -------------- Hero -------------- */
-  #hero-principal-image {
-    background-image: url("assets/images/chambre-hotel-tropical-transparent.jpg");
-  }
-  
+
   .hero-position {
     background-position: center;
     background-size: cover;
