@@ -56,7 +56,7 @@ export default function RegisterPage() {
     }
 
     if (redirect) {
-        return <Navigate to = {"/"} />;
+        return <Navigate to = {"/login"} />;
     }
     return (
         <div id="register" className="d-flex justify-content-center align-items-center">
