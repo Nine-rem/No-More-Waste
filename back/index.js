@@ -3,7 +3,8 @@ Définition des constantes
 ---------------------------------------------------------- */
 
 require('dotenv').config();
-const DOMAIN = "https://nomorewaste.site";
+const DOMAIN = "http://localhost:5173"
+// const DOMAIN = "https://www.nomorewaste.site";
 const express = require('express')
 const app = express()
 const connection = require('./db-connection.js');
@@ -19,15 +20,18 @@ const fs = require('fs');
 const { format } = require('date-fns');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 //middleware
 // app.use(express.json());
 app.use(cors({
   credentials: true,
-  origin: process.env.DOMAIN
+  origin: DOMAIN
 }))
-console.log(process.env.DOMAIN);
-console.log(DOMAIN)
-console.log(process.env.SECRET_KEY);
+console.log("Domain .env:   ",process.env.DOMAIN);
+console.log("Domain const:  ",DOMAIN)
+console.log("secret key:    ",process.env.SECRET_KEY);
+console.log("Stripe Secret: ", process.env.STRIPE_SECRET_KEY);
+console.log("Webhook secret:",process.env.STRIPE_WEBHOOK_SECRET);
 
  
 app.use(cookieParser());
@@ -58,7 +62,6 @@ app.post("/api/register", express.json(), async (req, res) => {
         confirmPassword,
         phoneNumber,
     } = req.body;
-
     const saltRounds = 10;
     let errorArray = {};
 
@@ -86,6 +89,7 @@ app.post("/api/register", express.json(), async (req, res) => {
         }
 
         const regexname = /^[a-zA-ZÀ-ÿ\s]{2,40}$/;
+        console.log("Nom: ",lastname);
        lastname =lastname.trim().toUpperCase();
        firstname =firstname.trim().toLowerCase();
        firstname =firstname.charAt(0).toUpperCase() +firstname.slice(1);
@@ -471,49 +475,142 @@ app.post('/api/volunteer/apply', express.json(), (req, res) => {
         res.json({ message: 'Candidature soumise avec succès' });
     });
 });
+app.get('/api/volunteer/:idUser/services', express.json(),(req, res) => {
+    const userId = req.params.idUser;
 
-app.get('/api/admin/applications', express.json(), (req, res) => {
     const query = `
-        SELECT VA.*, U.firstname, U.lastname, S.name AS serviceName 
-        FROM volunteer_application VA
-        JOIN USER U ON VA.idUser = U.idUser
-        JOIN SERVICE S ON VA.idService = S.idService
-        WHERE VA.status = 'pending'
+        SELECT s.idService, s.name, s.description 
+        FROM SERVICE s
+        JOIN propose p ON s.idService = p.idService
+        WHERE p.idUser = ?
     `;
-    connection.query(query, (error, results) => {
+
+    connection.query(query, [userId], (error, results) => {
         if (error) {
-            console.error('Erreur lors de la récupération des candidatures:', error);
-            return res.status(500).json({ error: 'Erreur lors de la récupération des candidatures' });
+            console.error('Erreur lors de la récupération des services :', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des services' });
         }
+
         res.json(results);
     });
 });
-app.patch('/api/admin/applications/:id', express.json(),(req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
 
-    if (!['approved', 'rejected'].includes(status)) {
-        return res.status(400).json({ error: 'Statut invalide' });
+/*- ----------------------------------------------------
+    
+      Créneaux horaires
+---------------------------------------------------------- */
+
+
+app.post('/api/services/:idService/slots', express.json(), (req, res) => {
+    const serviceId = req.params.idService;
+    const { slots } = req.body;
+
+    if (!slots || !Array.isArray(slots) || slots.length === 0) {
+        return res.status(400).json({ error: 'Aucun créneau horaire fourni.' });
     }
 
-    const updateApplicationQuery = `
-        UPDATE volunteer_application 
-        SET status = ?
-        WHERE idApplication = ?
+    const query = `
+        INSERT INTO timeslot (date, time, idService) 
+        VALUES (?, ?, ?)
     `;
-    connection.query(updateApplicationQuery, [status, id], (error, results) => {
+
+    const insertPromises = slots.map(slot => {
+        const { date, time } = slot;
+        if (!date) {
+            console.error('Date invalide pour le créneau horaire:', slot);
+            return Promise.reject(new Error(`Date invalide pour le jour : ${date}`));
+        }
+        return new Promise((resolve, reject) => {
+            connection.query(query, [date, time, serviceId], (error, results) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(results);
+            });
+        });
+    });
+
+    Promise.all(insertPromises)
+        .then(() => {
+            res.json({ message: 'Créneaux horaires ajoutés avec succès !' });
+        })
+        .catch(error => {
+            console.error('Erreur lors de l\'ajout des créneaux horaires :', error);
+            res.status(500).json({ error: 'Erreur lors de l\'ajout des créneaux horaires.' });
+        });
+});
+
+app.get('/api/services/:idService/slots', (req, res) => {
+    const serviceId = req.params.idService;
+
+    const query = `SELECT * FROM timeslot WHERE idService = ? ORDER BY date, time`;
+
+    connection.query(query, [serviceId], (error, results) => {
         if (error) {
-            console.error('Erreur lors de la mise à jour de la candidature:', error);
-            return res.status(500).json({ error: 'Erreur lors de la mise à jour de la candidature' });
+            console.error('Erreur lors de la récupération des créneaux horaires :', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des créneaux horaires.' });
+        }
+
+        res.json(results);
+    });
+});
+
+app.put('/api/services/:idService/slots', express.json(), (req, res) => {
+    const serviceId = req.params.idService;
+    const { slots } = req.body;
+
+    if (!slots || !Array.isArray(slots) || slots.length === 0) {
+        return res.status(400).json({ error: 'Aucun créneau horaire fourni.' });
+    }
+
+    const updatePromises = slots.map(slot => {
+        const { idTimeslot, date, time } = slot;
+        const formattedDate = date.split('T')[0]; // Extraire la partie 'YYYY-MM-DD' uniquement
+
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE timeslot
+                SET date = ?, time = ?
+                WHERE idTimeslot = ? AND idService = ?
+            `;
+            connection.query(query, [formattedDate, time, idTimeslot, serviceId], (error, results) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(results);
+            });
+        });
+    });
+
+    Promise.all(updatePromises)
+        .then(() => {
+            res.json({ message: 'Créneaux horaires mis à jour avec succès !' });
+        })
+        .catch(error => {
+            console.error('Erreur lors de la mise à jour des créneaux horaires :', error);
+            res.status(500).json({ error: 'Erreur lors de la mise à jour des créneaux horaires.' });
+        });
+});
+
+app.delete('/api/services/slots/:idTimeslot', (req, res) => {
+    const idTimeslot = req.params.idTimeslot;
+
+    const query = `DELETE FROM timeslot WHERE idTimeslot = ?`;
+
+    connection.query(query, [idTimeslot], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la suppression du créneau horaire :', error);
+            return res.status(500).json({ error: 'Erreur lors de la suppression du créneau horaire.' });
         }
 
         if (results.affectedRows === 0) {
-            return res.status(404).json({ error: 'Candidature non trouvée' });
+            return res.status(404).json({ error: 'Créneau horaire non trouvé.' });
         }
 
-        res.json({ message: 'Statut de la candidature mis à jour avec succès' });
+        res.json({ message: 'Créneau horaire supprimé avec succès !' });
     });
 });
+
 
 
 // Route pour récupérer les créneaux horaires disponibles pour un service à une date donnée
@@ -1181,6 +1278,80 @@ app.get('/api/user-subscriptions/:idUser', express.json(),(req, res) => {
    Admin - Utilisateurs
 ---------------------------------------------------------- */
 
+app.get('/api/admin/applications', express.json(), (req, res) => {
+    const query = `
+        SELECT VA.*, U.firstname, U.lastname, S.name AS serviceName 
+        FROM volunteer_application VA
+        JOIN USER U ON VA.idUser = U.idUser
+        JOIN SERVICE S ON VA.idService = S.idService
+        WHERE VA.status = 'pending'
+    `;
+    connection.query(query, (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des candidatures:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des candidatures' });
+        }
+        res.json(results);
+    });
+});
+app.patch('/api/admin/applications/:id', express.json(), (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Statut invalide' });
+    }
+
+    const updateApplicationQuery = `
+        UPDATE volunteer_application 
+        SET status = ?
+        WHERE idApplication = ?
+    `;
+
+    connection.query(updateApplicationQuery, [status, id], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour de la candidature:', error);
+            return res.status(500).json({ error: 'Erreur lors de la mise à jour de la candidature' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Candidature non trouvée' });
+        }
+
+        // Si la candidature est approuvée, insérer les données dans la table propose
+        if (status === 'approved') {
+            const getUserAndServiceQuery = `
+                SELECT idUser, idService 
+                FROM volunteer_application 
+                WHERE idApplication = ?
+            `;
+            connection.query(getUserAndServiceQuery, [id], (error, results) => {
+                if (error) {
+                    console.error('Erreur lors de la récupération de la candidature:', error);
+                    return res.status(500).json({ error: 'Erreur lors de la récupération de la candidature' });
+                }
+
+                const { idUser, idService } = results[0];
+                const insertProposeQuery = `
+                    INSERT INTO propose (idUser, idService)
+                    VALUES (?, ?)
+                `;
+                connection.query(insertProposeQuery, [idUser, idService], (error) => {
+                    if (error) {
+                        console.error('Erreur lors de l\'insertion dans propose:', error);
+                        return res.status(500).json({ error: 'Erreur lors de l\'insertion dans propose' });
+                    }
+
+                    res.json({ message: 'Statut de la candidature mis à jour avec succès et service ajouté.' });
+                });
+            });
+        } else {
+            res.json({ message: 'Statut de la candidature mis à jour avec succès' });
+        }
+    });
+});
+
+
 app.get('/api/users', express.json(), (req, res) => {
     const query = 'SELECT * FROM USER';
     connection.query(query, (error, results) => {
@@ -1347,7 +1518,7 @@ app.get('/api/subscription/:id', express.json(), (req, res) => {
 
     Stripe Webhooks
 ---------------------------------------------------------- */
-const endpointSecret = "we_1PpGXVGtnpoEQDI2XCub0F2Y";
+// const endpointSecret = "we_1PpGXVGtnpoEQDI2XCub0F2Y";
 app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;

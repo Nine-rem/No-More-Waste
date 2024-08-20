@@ -7,8 +7,8 @@ import axios from 'axios';
 import { Link, Navigate } from 'react-router-dom';
 
 export default function RegisterPage() {
-    const [lastName, setLastName] = useState("");
-    const [firstName, setFirstName] = useState("");
+    const [lastname, setLastname] = useState("");
+    const [firstname, setFirstname] = useState("");
     const [birthdate, setBirthdate] = useState("");
     const [address, setAddress] = useState("");
     const [postalCode, setPostalCode] = useState("");
@@ -28,8 +28,8 @@ export default function RegisterPage() {
         setFieldErrors({});
         try {
             const response = await axios.post('/api/register', {
-                lastName,
-                firstName,
+                lastname,
+                firstname,
                 birthdate,
                 address,
                 postalCode,
@@ -65,29 +65,29 @@ export default function RegisterPage() {
             
                 <Form onSubmit={registerUser}>
                     {/* Champ Nom */}
-                    <Form.Group as={Row} className="mb-3" controlId="formPlaintextLastName">
+                    <Form.Group as={Row} className="mb-3" controlId="formPlaintextLastname">
                         <Form.Label column sm="2">
                             Nom
                         </Form.Label>
                         <Col sm="10">
                             <Form.Control type="text" placeholder="nom" required="required"
-                                value={lastName}
-                                onChange={ev => setLastName(ev.target.value)} />
-                            {fieldErrors.lastName && <p className="text-danger">{fieldErrors.lastName}</p>}
+                                value={lastname}
+                                onChange={ev => setLastname(ev.target.value)} />
+                            {fieldErrors.lastname && <p className="text-danger">{fieldErrors.lastname}</p>}
                         </Col>
                     </Form.Group>
 
                     {/* Champ Prénom */}
-                    <Form.Group as={Row} className="mb-3" controlId="formPlaintextFirstName">
+                    <Form.Group as={Row} className="mb-3" controlId="formPlaintextFirstname">
                         <Form.Label column sm="2">
                             Prénom
                         </Form.Label>
                         <Col sm="10">
                             <Form.Control type="text" placeholder="Prénom" required="required"
-                                value={firstName}
-                                onChange={ev => setFirstName(ev.target.value)}
+                                value={firstname}
+                                onChange={ev => setFirstname(ev.target.value)}
                             />
-                            {fieldErrors.firstName && <p className="text-danger">{fieldErrors.firstName}</p>}
+                            {fieldErrors.firstname && <p className="text-danger">{fieldErrors.firstname}</p>}
                         </Col>
                     </Form.Group>
 
