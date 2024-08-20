@@ -1,150 +1,203 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Form, Button, Alert } from "react-bootstrap";
 
 export default function AdminEditUserPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [user, setUser] = useState({
-        firstname: "",
-        lastname: "",
-        birthdate: "",
-        address: "",
-        city: "",
-        postalCode: "",
-        phoneNumber: "",
-        email: "",
-    });
-    const [errors, setErrors] = useState({});
-    const [message, setMessage] = useState("");
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     useEffect(() => {
-        // Fetch user data
+        // Récupérer les informations de l'utilisateur à partir de l'API
         axios.get(`/api/users/${id}`)
-            .then(response => setUser(response.data))
-            .catch(error => console.error("Erreur lors de la récupération des données utilisateur :", error));
+            .then(response => {
+                setUser(response.data);
+                setLoading(false);
+            })
+            .catch(error => {
+                setError("Erreur lors de la récupération des informations de l'utilisateur.");
+                setLoading(false);
+            });
     }, [id]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setUser({ ...user, [name]: value });
+        setUser({
+            ...user,
+            [e.target.name]: e.target.value
+        });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setErrors({});
+        setError("");
+        setSuccess("");
 
+        // Mettre à jour les informations de l'utilisateur via l'API
         axios.put(`/api/users/${id}`, user)
             .then(response => {
-                setMessage(response.data.message);
-                setTimeout(() => {
-                    navigate('/account/admin/users');
-                }, 2000);
+                setSuccess("Les informations de l'utilisateur ont été mises à jour avec succès.");
             })
             .catch(error => {
-                if (error.response && error.response.data.errors) {
-                    setErrors(error.response.data.errors);
-                } else {
-                    console.error("Erreur lors de la mise à jour de l'utilisateur :", error);
-                }
+                setError("Erreur lors de la mise à jour des informations de l'utilisateur.");
             });
     };
 
+    if (loading) {
+        return <p>Chargement des informations de l'utilisateur...</p>;
+    }
+
+    if (error) {
+        return <Alert variant="danger">{error}</Alert>;
+    }
+
+    if (!user) {
+        return <Navigate to="/admin/users" />;
+    }
+
     return (
-        <div className="container">
+        <div>
             <h1>Modifier l'utilisateur</h1>
-            <form onSubmit={handleSubmit} className="mx-auto max-w-md">
-                {message && <div className="alert alert-success">{message}</div>}
-                <div className="form-group">
-                    <label>Prénom</label>
-                    <input
+            {success && <Alert variant="success">{success}</Alert>}
+            {error && <Alert variant="danger">{error}</Alert>}
+            <Form onSubmit={handleSubmit}>
+                <Form.Group controlId="formFirstname">
+                    <Form.Label>Prénom</Form.Label>
+                    <Form.Control
                         type="text"
                         name="firstname"
                         value={user.firstname}
                         onChange={handleChange}
-                        className="form-control"
                     />
-                    {errors.firstname && <div className="text-danger">{errors.firstname}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Nom</label>
-                    <input
+                </Form.Group>
+
+                <Form.Group controlId="formLastname">
+                    <Form.Label>Nom</Form.Label>
+                    <Form.Control
                         type="text"
                         name="lastname"
                         value={user.lastname}
                         onChange={handleChange}
-                        className="form-control"
                     />
-                    {errors.lastname && <div className="text-danger">{errors.lastname}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Date de naissance</label>
-                    <input
-                        type="date"
-                        name="birthdate"
-                        value={user.birthdate}
-                        onChange={handleChange}
-                        className="form-control"
-                    />
-                    {errors.birthdate && <div className="text-danger">{errors.birthdate}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Adresse</label>
-                    <input
-                        type="text"
-                        name="address"
-                        value={user.address}
-                        onChange={handleChange}
-                        className="form-control"
-                    />
-                    {errors.address && <div className="text-danger">{errors.address}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Ville</label>
-                    <input
-                        type="text"
-                        name="city"
-                        value={user.city}
-                        onChange={handleChange}
-                        className="form-control"
-                    />
-                    {errors.city && <div className="text-danger">{errors.city}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Code postal</label>
-                    <input
-                        type="text"
-                        name="postalCode"
-                        value={user.postalCode}
-                        onChange={handleChange}
-                        className="form-control"
-                    />
-                    {errors.postalCode && <div className="text-danger">{errors.postalCode}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Numéro de téléphone</label>
-                    <input
-                        type="text"
-                        name="phoneNumber"
-                        value={user.phoneNumber}
-                        onChange={handleChange}
-                        className="form-control"
-                    />
-                    {errors.phoneNumber && <div className="text-danger">{errors.phoneNumber}</div>}
-                </div>
-                <div className="form-group">
-                    <label>Email</label>
-                    <input
+                </Form.Group>
+
+                <Form.Group controlId="formEmail">
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
                         type="email"
                         name="email"
                         value={user.email}
                         onChange={handleChange}
-                        className="form-control"
                     />
-                    {errors.email && <div className="text-danger">{errors.email}</div>}
-                </div>
-                <button type="submit" className="btn btn-primary mt-3">Enregistrer</button>
-            </form>
+                </Form.Group>
+
+                <Form.Group controlId="formAddress">
+                    <Form.Label>Adresse</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="address"
+                        value={user.address}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formCity">
+                    <Form.Label>Ville</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="city"
+                        value={user.city}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formPostalCode">
+                    <Form.Label>Code Postal</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="postalCode"
+                        value={user.postalCode}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formCountry">
+                    <Form.Label>Pays</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="country"
+                        value={user.country}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formPhoneNumber">
+                    <Form.Label>Téléphone</Form.Label>
+                    <Form.Control
+                        type="text"
+                        name="phoneNumber"
+                        value={user.phoneNumber}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formBirthdate">
+                    <Form.Label>Date de naissance</Form.Label>
+                    <Form.Control
+                        type="date"
+                        name="birthdate"
+                        value={user.birthdate}
+                        onChange={handleChange}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formIsAdmin">
+                    <Form.Check
+                        type="checkbox"
+                        label="Administrateur"
+                        name="isAdmin"
+                        checked={user.isAdmin}
+                        onChange={(e) => setUser({ ...user, isAdmin: e.target.checked })}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formIsMerchant">
+                    <Form.Check
+                        type="checkbox"
+                        label="Marchand"
+                        name="isMerchant"
+                        checked={user.isMerchant}
+                        onChange={(e) => setUser({ ...user, isMerchant: e.target.checked })}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formIsVolunteer">
+                    <Form.Check
+                        type="checkbox"
+                        label="Bénévole"
+                        name="isVolunteer"
+                        checked={user.isVolunteer}
+                        onChange={(e) => setUser({ ...user, isVolunteer: e.target.checked })}
+                    />
+                </Form.Group>
+
+                <Form.Group controlId="formIsBanned">
+                    <Form.Check
+                        type="checkbox"
+                        label="Banni"
+                        name="isBanned"
+                        checked={user.isBanned}
+                        onChange={(e) => setUser({ ...user, isBanned: e.target.checked })}
+                    />
+                </Form.Group>
+
+                <Button variant="primary" type="submit" className="mt-3">
+                    Mettre à jour
+                </Button>
+            </Form>
         </div>
     );
 }

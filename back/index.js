@@ -795,6 +795,45 @@ app.post('/api/products', upload.array('images'), express.json(),(req, res) => {
     });
 });
 
+// API: Récupérer les détails d'un produit spécifique
+app.get('/api/products/:idProduct', (req, res) => {
+    const idProduct = req.params.idProduct;
+  
+    const query = `
+        SELECT p.*, ph.idPhoto, ph.path AS photoPath
+        FROM PRODUCT p
+        LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+        WHERE p.idProduct = ?
+    `;
+  
+    connection.query(query, [idProduct], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la récupération du produit', err);
+            return res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
+        }
+  
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Produit non trouvé' });
+        }
+  
+        const product = {
+            idProduct: results[0].idProduct,
+            name: results[0].name,
+            reference: results[0].reference,
+            stock: results[0].stock,
+            brand: results[0].brand,
+            description: results[0].description,
+            category: results[0].category,
+            photos: results.map(row => ({
+                idPhoto: row.idPhoto,
+                fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+            }))
+        };
+  
+        res.json(product);
+    });
+  });
+  
 
 
 app.get('/api/users/:idUser/products', express.json(),(req, res) => {
@@ -824,6 +863,7 @@ app.get('/api/users/:idUser/products', express.json(),(req, res) => {
                   stock: row.stock,
                   brand: row.brand,
                   description: row.description,
+                  category: row.category,
                   photos: []
               };
           }
@@ -1051,14 +1091,72 @@ app.delete('/api/products/:productId',express.json(), (req, res) => {
 });
 
 
-
-
-
+app.get('/api/products', (req, res) => {
+    const query = `
+        SELECT p.*, ph.idPhoto, ph.path AS photoPath
+        FROM PRODUCT p
+        LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+    `;
+  
+    connection.query(query, (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la récupération des produits', err);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
+        }
+  
+        const products = {};
+  
+        results.forEach(row => {
+            if (!products[row.idProduct]) {
+                products[row.idProduct] = {
+                    idProduct: row.idProduct,
+                    name: row.name,
+                    reference: row.reference,
+                    price: row.price,
+                    stock: row.stock,
+                    brand: row.brand,
+                    description: row.description,
+                    category: row.category,
+                    photos: []
+                };
+            }
+  
+            if (row.photoPath) {
+                products[row.idProduct].photos.push({
+                    idPhoto: row.idPhoto,
+                    fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                });
+            }
+        });
+  
+        res.json(Object.values(products));
+    });
+  });
+  
 
 /*----------------------------------------------------
     
       Services
 ---------------------------------------------------------- */
+
+app.get('/api/services', express.json(), (req, res) => {
+    const query = `
+        SELECT *
+        FROM 
+            SERVICE 
+    `;
+
+    connection.query(query, (error, results) => {
+        if (error) {
+            console.error("Erreur lors de la récupération des services:", error);
+            return res.status(500).json({ error: "Erreur lors de la récupération des services" });
+        }
+        res.json(results);
+    });
+});
+
+
+
 
 app.get('/api/users/:userId/services', express.json(), (req, res) => {
   const userId = req.params.userId;
@@ -1110,6 +1208,61 @@ cron.schedule('0 0 * * *', () => {
     });
   });
 });
+/*----------------------------------------------------
+
+        Bénévoles
+---------------------------------------------------------- */
+
+app.patch('/api/volunteer/apply',express.json(), (req, res) => {
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const idUser= decoded.userId;
+
+    const query = `
+        UPDATE USER 
+        SET isVolunteer = 1
+        WHERE idUser = ?
+    `;
+
+    connection.query(query, [idUser], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour du statut de bénévole:', error);
+            return res.status(500).json({ error: 'Erreur lors de la mise à jour du statut de bénévole' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        res.json({ message: 'Le statut de bénévole a été mis à jour avec succès' });
+    });
+});
+app.patch('/api/merchant/apply',express.json(), (req, res) => {
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, secretKey);
+    const idUser= decoded.userId;
+
+    const query = `
+        UPDATE USER 
+        SET isMerchant = 1
+        WHERE idUser = ?
+    `;
+
+    connection.query(query, [idUser], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour du statut de bénévole:', error);
+            return res.status(500).json({ error: 'Erreur lors de la mise à jour du statut de bénévole' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        res.json({ message: 'Le statut de bénévole a été mis à jour avec succès' });
+    });
+});
+
+
 
 /* ----------------------------------------------------
     Abonnement

@@ -1,0 +1,19 @@
+
+.no-image-placeholder {
+    height: 200px;
+    background-color: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    color: #999;
+}
+
+.product-grid .product-card {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.product-grid .product-card:hover {
+    transform: scale(1.05);
+}

@@ -1,14 +1,16 @@
 import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form } from 'react-bootstrap';
 import { UserContext } from '../userContext';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
-import '../style/merchantProductPage.css';  // Assurez-vous de créer un fichier CSS pour les styles spécifiques
-import "../accountNav.jsx";
+import '../style/merchantProductPage.css';
 import AccountNav from '../accountNav.jsx';
+
 function MerchantProductPage() {
     const { user, ready } = useContext(UserContext);
     const [products, setProducts] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('all');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -47,6 +49,21 @@ function MerchantProductPage() {
         }
     };
 
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const handleFilterChange = (e) => {
+        setFilterCategory(e.target.value);
+    };
+
+    const filteredProducts = products.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
+        console.log(product.category, filterCategory);
+        return matchesSearch && matchesCategory;
+    });
+
     return (
         <>
         <AccountNav />
@@ -62,9 +79,30 @@ function MerchantProductPage() {
                     </Link>
                 </Col>
             </Row>
+            <Row className="mb-4">
+                <Col md={6}>
+                    <Form.Control 
+                        type="text" 
+                        placeholder="Rechercher un produit..." 
+                        value={searchQuery} 
+                        onChange={handleSearchChange} 
+                    />
+                </Col>
+                <Col md={6}>
+                    <Form.Control 
+                        as="select" 
+                        value={filterCategory} 
+                        onChange={handleFilterChange}
+                    >
+                        <option value="all">Toutes les catégories</option>
+                        <option value="alimentaire">Alimentaire</option>
+                        <option value="non-alimentaire">Non-alimentaire</option>
+                    </Form.Control>
+                </Col>
+            </Row>
             <Row className="product-grid">
-                {products.length > 0 ? (
-                    products.map((product) => (
+                {filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => (
                         <Col key={product.idProduct} sm={12} md={6} lg={4} className="mb-4">
                             <Card className="product-card">
                                 {product.photos && product.photos.length > 0 ? (

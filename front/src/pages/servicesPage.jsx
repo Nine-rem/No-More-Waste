@@ -19,6 +19,9 @@ function servicesPage() {
         <Link to="/account/volunteer/services">
             <button type="button" className="btn btn-primary">Proposer un service </button>
         </Link>
+        <Link to="/account/volunteer/myServices">
+            <button type="button" className="btn btn-primary">Consulter mes services</button>
+        </Link>
 
         </div>
     );

@@ -28,11 +28,15 @@ export default function ProfilePage() {
         return <Navigate to="/login" />;
     }
 
+    function isVolunteer(user) {
+        return user && user.isVolunteer === 1;
+    }
     function isMerchant(user) {
         return user && user.isMerchant === 1;
     }
 
     return (
+        console.log(user),
         <>
             <div>
                 <AccountNav />
@@ -43,17 +47,26 @@ export default function ProfilePage() {
                         <Link to={`/account/edit/${user.idUser}`}>
                             <button type="button" className="btn btn-dark max-w-sm mt-2">Modifier mon profil</button>
                         </Link>
+                        {user && isMerchant(user) && (
                         <Link to='/account/subscription'>
                             <Button variant="dark" className="max-w-sm mt-2">S'abonner</Button>
                         </Link>
+                        )}
                     </div>
                 )}
             </div>
-            {user && !isMerchant(user) && (
+            {user && !isVolunteer(user) && !isMerchant(user) && (
+                <>
                 <Link to='/becomeVolunteer'>
                     <Button variant="dark">Devenir Bénévole</Button>
                 </Link>
+            
+                <Link to='/becomeMerchant'>
+                    <Button variant="dark">Devenir Commerçant</Button>
+                </Link>
+                </>
             )}
+            
         </>
     );
 }

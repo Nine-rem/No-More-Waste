@@ -12,7 +12,7 @@ function merchantPage() {
     return (
         <div>
             <AccountNav/>
-            <h1>Merchant</h1>
+            <h1>Commerçant</h1>
             <p>Vous pouvez consulter ici vos produits</p>
             <Link to="/account/merchant/products">
                 <Button variant="primary">Liste des produits</Button>

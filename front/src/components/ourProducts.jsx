@@ -6,17 +6,17 @@ function OurServices() {
     const navigate = useNavigate();
 
     const handleClick = () => {
-        navigate("/services/all");  // Redirige vers la page des services proposés
+        navigate("/products/all");  // Redirige vers la page des services proposés
     };
 
     return (
         <section className="our-services-section">
             <div className="container">
                 <div className="text-center">
-                    <h2>Nos Services</h2>
-                    <p className="fs-6 mb-4">Découvrez une variété de services que nous proposons pour répondre à tous vos besoins. Que vous recherchiez de l'aide pour des tâches spécifiques ou des services spécialisés, notre équipe est là pour vous assister.</p>
+                    <h2>Nos produits</h2>
+                    <p className="fs-6 mb-4">Découvrez une variété de produits que nous proposons. Vous avez le pouvoir de donner une deuxème chance a ceux qu'on ne voulait plus.</p>
                     <button className="btn btn-dark btn-hover-brown" onClick={handleClick}>
-                        Voir nos services proposés
+                        Voir nos produits proposés
                     </button>
                 </div>
             </div>

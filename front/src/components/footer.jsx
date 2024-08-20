@@ -29,7 +29,7 @@ function Footer() {
           <Link to="/contact" className="nav-link px-2">Contact</Link>
         </li>
       </ul>
-      <p className="text-center">© 2024 PCS | Tous droits réservés</p>
+      <p className="text-center">© 2024 No More Waste | Tous droits réservés</p>
     </footer>
   );
 }

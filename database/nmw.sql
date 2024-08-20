@@ -55,9 +55,9 @@ CREATE TABLE USER (
     country VARCHAR(255),
     phoneNumber VARCHAR(255),
     birthdate DATE,
-    isAdmin BOOLEAN,
-    isMerchant BOOLEAN,
-    isVolunteer BOOLEAN,
+    isAdmin BOOLEAN DEFAULT FALSE,
+    isMerchant BOOLEAN DEFAULT FALSE,
+    isVolunteer BOOLEAN DEFAULT FALSE,
     token TEXT,
     isBanned BOOLEAN,
     stripeCustomerId VARCHAR(255) DEFAULT NULL

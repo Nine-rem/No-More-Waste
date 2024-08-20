@@ -11,6 +11,12 @@ import LegalPage from './pages/legalPage.jsx';
 import CookiesPage from './pages/cookiesPage.jsx';
 import ServiceTermsPage from './pages/serviceTermsPage.jsx';
 import ContactPage from './pages/contactPage.jsx';
+
+import AllServicesPage from './pages/allServicesPage.jsx';
+import AllProductsPage from './pages/allProductsPage.jsx';
+import ProductPage from './pages/productPage.jsx';
+
+
 import AccountPage from './pages/accountPage.jsx';
 import EditUserPage from './pages/editUserPage.jsx';
 
@@ -19,11 +25,18 @@ import ServicesPage from './pages/servicesPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
 
 import BecomeVolunteerPage from './pages/becomeVolunteerPage.jsx';
+import MyservicesPage from './pages/myServicesPage.jsx';
+import AddSlotsPage from './pages/addSlotsPage.jsx';
+import ViewSlotsPage from './pages/viewSlotsPage.jsx';
+import EditSlotsPage from './pages/editSlotsPage.jsx';
+
+
 import VolunteerApplyPage from './pages/volunteerApplyPage.jsx';
 
 
 
 import MerchantPage from './pages/merchantPage.jsx';
+import BecomeMerchantPage from './pages/becomeMerchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import MerchantEditProductPage from './pages/merchantEditProductPage.jsx';
@@ -46,6 +59,7 @@ axios.defaults.withCredentials = true;
 function App() {
 
   return (
+    console.log(axios.defaults.baseURL),
     
     <UserContextProvider>
       <Routes>
@@ -54,16 +68,26 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
+          <Route path="/services/all" element={<AllServicesPage />} />
+          <Route path="/products/all" element={<AllProductsPage />} />
+          <Route path="/products/:idProduct" element={< ProductPage />} />
+
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/edit/:id" element={<EditUserPage />} />
           <Route path="/account/subscription" element={<SubscriptionPage />} />
 
           <Route path='/account/services' element={<ServicesPage />} />
+          <Route path='/account/volunteer/myServices' element={<MyservicesPage />} />
+          <Route path="/account/volunteer/services/:idService/slots/add" element={<AddSlotsPage />}/>
+          <Route path='/account/volunteer/services/:idService/slots/view' element={<ViewSlotsPage />} />
+          <Route path='/account/volunteer/services/:idService/slots/edit' element={<EditSlotsPage />} />
           <Route path='/account/volunteer/services' element={<VolunteerApplyPage />} />
-
-          <Route path="/account/becomeVolunteer" element={<BecomeVolunteerPage />} />
+ 
+          <Route path="/becomeVolunteer" element={<BecomeVolunteerPage />} />
 
           <Route path ='/account/merchant' element={<MerchantPage />} />
+          <Route path="/becomeMerchant" element={<BecomeMerchantPage />} />
+          
           <Route path="/account/merchant/products" element={<MerchantProductPage />} />
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
           <Route path="/account/merchant/editProduct/:productId" element={<MerchantEditProductPage />} />
