@@ -111,7 +111,7 @@ function App() {
           
           <Route path="/account/merchant/products" element={<MerchantProductPage />} />
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
-          <Route path="/account/merchant/editProduct/:productId/edit" element={<MerchantEditProductPage />} />
+          <Route path="/account/merchant/editProduct/:productId" element={<MerchantEditProductPage />} />
 
 
 
