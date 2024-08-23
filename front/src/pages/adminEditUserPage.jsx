@@ -194,7 +194,7 @@ export default function AdminEditUserPage() {
                     />
                 </Form.Group>
 
-                <Button variant="primary" type="submit" className="mt-3">
+                <Button variant="dark" type="submit" className="mt-3">
                     Mettre à jour
                 </Button>
             </Form>

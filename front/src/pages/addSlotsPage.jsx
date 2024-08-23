@@ -204,7 +204,7 @@ export default function AddSlotsPage() {
                     </div>
                 ))}
                 <div className="text-center mt-4">
-                    <Button variant="primary" type="submit">Ajouter les créneaux horaires</Button>
+                    <Button variant="dark" type="submit">Ajouter les créneaux horaires</Button>
                 </div>
             </Form>
         </Container>

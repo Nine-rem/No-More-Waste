@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { UserContext } from '../userContext';
 import { Button, Form, Alert } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 
 export default function VolunteerApplyPage() {
     const { user } = useContext(UserContext);
@@ -9,6 +10,7 @@ export default function VolunteerApplyPage() {
     const [selectedService, setSelectedService] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         axios.get('/api/services')
@@ -32,6 +34,9 @@ export default function VolunteerApplyPage() {
             .then(response => {
                 setSuccessMessage('Candidature soumise avec succès !');
                 setSelectedService('');
+                setTimeout(() => {
+                    navigate('/account/services');
+                }, 2000);
             })
             .catch(error => {
                 console.error('Erreur lors de la soumission de la candidature:', error);
@@ -60,7 +65,7 @@ export default function VolunteerApplyPage() {
                         ))}
                     </Form.Control>
                 </Form.Group>
-                <Button type="submit" variant="primary" className="mt-3">Soumettre</Button>
+                <Button type="submit" variant="dark" className="mt-3">Soumettre</Button>
             </Form>
         </div>
     );

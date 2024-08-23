@@ -13,7 +13,7 @@ export default function SuccessPage() {
         <div className="success-container">
             <h1>Paiement réussi !</h1>
             <p>Merci pour votre abonnement. Votre paiement a été traité avec succès.</p>
-            <Button variant="primary" onClick={handleGoToAccount}>Retourner à votre compte</Button>
+            <Button variant="dark" onClick={handleGoToAccount}>Retourner à votre compte</Button>
         </div>
     );
 }

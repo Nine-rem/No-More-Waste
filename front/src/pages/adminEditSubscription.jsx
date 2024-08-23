@@ -110,7 +110,7 @@ export default function AdminEditSubscriptionPage() {
                     </Form.Control>
                 </Form.Group>
 
-                <Button variant="primary" type="submit">
+                <Button variant="dark" type="submit">
                     Mettre à jour
                 </Button>
             </Form>

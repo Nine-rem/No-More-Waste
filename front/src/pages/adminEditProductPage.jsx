@@ -1,12 +1,14 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, Form, Alert, Col, Row, Card } from "react-bootstrap";
 import axios from "axios";
-import { Navigate, useNavigate } from "react-router-dom";
-import { UserContext } from "../userContext.jsx";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
+import "../style/merchantEditProductPage.css";
 import JsBarcode from "jsbarcode";
 
-function MerchantAddProductPage() {
-    const [productData, setProductData] = useState({
+function AdminEditProductPage() {
+    const { idProduct } = useParams();
+    const navigate = useNavigate();
+    const [product, setProduct] = useState({
         name: "",
         reference: "",
         description: "",
@@ -14,51 +16,71 @@ function MerchantAddProductPage() {
         category: "non-alimentaire",
         brand: "",
         expiryDate: "",
-        images: []
     });
-
-    const { user, ready } = useContext(UserContext);
-    const [previewImages, setPreviewImages] = useState([]);
+    const [photos, setPhotos] = useState([]);
+    const [photosToRemove, setPhotosToRemove] = useState([]); // Track photos to be removed
+    const [newPhotos, setNewPhotos] = useState([]);
+    const [previewNewPhotos, setPreviewNewPhotos] = useState([]);
     const [altDescriptions, setAltDescriptions] = useState({});
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
     const [referenceError, setReferenceError] = useState("");
-    const navigate = useNavigate();
 
     useEffect(() => {
-        if (productData.reference && !referenceError) {
-            JsBarcode("#barcode", productData.reference, {
-                format: "CODE128",
-                displayValue: true,
+        axios.get(`/api/admin/products/${idProduct}`)
+            .then(response => {
+                const fetchedProduct = response.data;
+                setProduct({
+                    name: fetchedProduct.name,
+                    reference: fetchedProduct.reference,
+                    description: fetchedProduct.description,
+                    stock: fetchedProduct.stock,
+                    category: fetchedProduct.category,
+                    brand: fetchedProduct.brand,
+                    expiryDate: fetchedProduct.expiryDate,
+                });
+                JsBarcode("#barcode", fetchedProduct.reference, {
+                    format: "CODE128",
+                    displayValue: true,
+                });
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération du produit:", error);
+                setErrorMessage("Erreur lors de la récupération du produit");
             });
-        }
-    }, [productData.reference, referenceError]);
 
-    if (!ready) {
-        return null;
-    }
-    if (!user || !user.idUser) {
-        return <Navigate to="/login" />;
-    }
+        axios.get(`/api/products/${idProduct}/photos`)
+            .then(response => {
+                setPhotos(response.data);
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération des photos:", error);
+                setErrorMessage("Erreur lors de la récupération des photos");
+            });
+    }, [idProduct]);
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
         if (name === "reference") {
-            const referenceRegex = /^\d*$/; // Regex pour vérifier que seuls les chiffres sont autorisés
+            const referenceRegex = /^\d*$/;
             if (!referenceRegex.test(value)) {
                 setReferenceError("La référence doit contenir uniquement des chiffres.");
             } else {
                 setReferenceError("");
-                setProductData({ ...productData, [name]: value });
+                setProduct({ ...product, [name]: value });
+                JsBarcode("#barcode", value, {
+                    format: "CODE128",
+                    displayValue: true,
+                });
             }
         } else if (name === "images") {
             const imageFiles = Array.from(files);
-            const imagePreviews = imageFiles.map((file) => URL.createObjectURL(file));
-            setProductData({ ...productData, images: [...productData.images, ...imageFiles] });
-            setPreviewImages([...previewImages, ...imagePreviews]);
+            const imagePreviews = imageFiles.map(file => URL.createObjectURL(file));
+            setNewPhotos([...newPhotos, ...imageFiles]);
+            setPreviewNewPhotos([...previewNewPhotos, ...imagePreviews]);
         } else {
-            setProductData({ ...productData, [name]: value });
+            setProduct({ ...product, [name]: value });
         }
     };
 
@@ -67,17 +89,22 @@ function MerchantAddProductPage() {
         setAltDescriptions({ ...altDescriptions, [index]: value });
     };
 
-    const handleRemoveImage = (index) => {
-        const updatedImages = [...productData.images];
-        const updatedPreviews = [...previewImages];
+    const handleRemoveExistingPhoto = (photoId) => {
+        setPhotosToRemove([...photosToRemove, photoId]);
+        setPhotos(photos.filter(photo => photo.idPhoto !== photoId));
+    };
 
-        URL.revokeObjectURL(previewImages[index]);
+    const handleRemoveNewPhoto = (index) => {
+        const updatedNewPhotos = [...newPhotos];
+        const updatedPreviewPhotos = [...previewNewPhotos];
 
-        updatedImages.splice(index, 1);
-        updatedPreviews.splice(index, 1);
+        URL.revokeObjectURL(previewNewPhotos[index]);
 
-        setProductData({ ...productData, images: updatedImages });
-        setPreviewImages(updatedPreviews);
+        updatedNewPhotos.splice(index, 1);
+        updatedPreviewPhotos.splice(index, 1);
+
+        setNewPhotos(updatedNewPhotos);
+        setPreviewNewPhotos(updatedPreviewPhotos);
     };
 
     const handleSubmit = async (e) => {
@@ -87,63 +114,61 @@ function MerchantAddProductPage() {
         setSuccessMessage("");
         setFieldErrors({});
 
-        const formData = new FormData();
-        formData.append("name", productData.name);
-        formData.append("reference", productData.reference || "");
-        formData.append("stock", productData.stock || "");
-        formData.append("description", productData.description || "");
-        formData.append("category", productData.category);
-        formData.append("brand", productData.brand || "");
+        const categoryValue = product.category || 'non-alimentaire';
 
-        if (productData.category === 'alimentaire') {
-            formData.append("expiryDate", productData.expiryDate || "");
+        const formData = new FormData();
+        formData.append("name", product.name);
+        formData.append("reference", product.reference || "");
+        formData.append("stock", product.stock || "");
+        formData.append("description", product.description || "");
+        formData.append("category", categoryValue);
+        formData.append("brand", product.brand || "");
+
+        if (categoryValue === 'alimentaire') {
+            formData.append("expiryDate", product.expiryDate || "");
+        } else {
+            formData.append("expiryDate", null);
         }
 
-        productData.images.forEach((image, index) => {
-            formData.append("images", image);
+        newPhotos.forEach((photo, index) => {
+            formData.append("images", photo);
             formData.append("altDescriptions", altDescriptions[index] || "");
         });
 
         try {
-            const response = await axios.post(`/api/products`, formData, {
+            const response = await axios.put(`/api/admin/products/${idProduct}`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                },
-                withCredentials: true
+                }
             });
 
-            setSuccessMessage(response.data.message);
-            setProductData({
-                name: "",
-                reference: "",
-                description: "",
-                stock: "",
-                category: "non-alimentaire",
-                brand: "",
-                expiryDate: "",
-                images: []
-            });
-            setPreviewImages([]);
+            await Promise.all(
+                photosToRemove.map(photoId =>
+                    axios.delete(`/api/photos/${photoId}`)
+                )
+            );
+
+            setSuccessMessage("Produit mis à jour avec succès !");
+            setNewPhotos([]);
+            setPreviewNewPhotos([]);
             setAltDescriptions({});
-
             setTimeout(() => {
-                navigate("/account/merchant/products");  // Redirection après 2 secondes
-            }, 2000);
+                navigate("/admin/products");
+            }, 1000);
 
         } catch (error) {
-            if (error.response && error.response.data.errors) {
-                setFieldErrors(error.response.data.errors);
-            } else if (error.response && error.response.data.error) {
-                setErrorMessage(error.response.data.error);
+            console.error("Erreur lors de la mise à jour :", error);
+            if (error.response) {
+                setErrorMessage(error.response.data.error || "Erreur lors de la validation des données.");
             } else {
-                setErrorMessage("Erreur lors de l'ajout du produit");
+                setErrorMessage("Erreur réseau ou serveur inaccessible.");
             }
         }
     };
 
     return (
         <div className="product-page">
-            <h1>Ajouter un produit</h1>
+            <h1>Modifier le produit</h1>
             {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
             {successMessage && <Alert variant="success">{successMessage}</Alert>}
             <Form onSubmit={handleSubmit}>
@@ -152,7 +177,7 @@ function MerchantAddProductPage() {
                     <Form.Control
                         type="text"
                         name="name"
-                        value={productData.name}
+                        value={product.name}
                         onChange={handleChange}
                         required
                     />
@@ -164,13 +189,13 @@ function MerchantAddProductPage() {
                     <Form.Control
                         type="text"
                         name="reference"
-                        value={productData.reference}
+                        value={product.reference}
                         onChange={handleChange}
                         required
                     />
                     {referenceError && <p className="text-danger">{referenceError}</p>}
                     {fieldErrors.reference && <p className="text-danger">{fieldErrors.reference}</p>}
-                    <svg id="barcode"></svg> {/* Zone de rendu du code-barres */}
+                    <svg id="barcode"></svg>
                 </Form.Group>
 
                 <Form.Group controlId="formProductDescription">
@@ -178,7 +203,7 @@ function MerchantAddProductPage() {
                     <Form.Control
                         type="text"
                         name="description"
-                        value={productData.description}
+                        value={product.description}
                         onChange={handleChange}
                     />
                     {fieldErrors.description && <p className="text-danger">{fieldErrors.description}</p>}
@@ -189,7 +214,7 @@ function MerchantAddProductPage() {
                     <Form.Control
                         type="number"
                         name="stock"
-                        value={productData.stock}
+                        value={product.stock}
                         onChange={handleChange}
                     />
                     {fieldErrors.stock && <p className="text-danger">{fieldErrors.stock}</p>}
@@ -197,7 +222,7 @@ function MerchantAddProductPage() {
 
                 <Form.Group controlId="formProductCategory">
                     <Form.Label>Catégorie</Form.Label>
-                    <Form.Control as="select" name="category" value={productData.category} onChange={handleChange} required>
+                    <Form.Control as="select" name="category" value={product.category} onChange={handleChange} required>
                         <option value="alimentaire">Alimentaire</option>
                         <option value="non-alimentaire">Non-alimentaire</option>
                     </Form.Control>
@@ -209,18 +234,18 @@ function MerchantAddProductPage() {
                     <Form.Control
                         type="text"
                         name="brand"
-                        value={productData.brand}
+                        value={product.brand}
                         onChange={handleChange}
                     />
                 </Form.Group>
 
-                {productData.category === 'alimentaire' && (
+                {product.category === 'alimentaire' && (
                     <Form.Group controlId="formProductExpiryDate">
                         <Form.Label>Date de péremption</Form.Label>
                         <Form.Control
                             type="date"
                             name="expiryDate"
-                            value={productData.expiryDate}
+                            value={product.expiryDate}
                             onChange={handleChange}
                             required
                         />
@@ -230,8 +255,23 @@ function MerchantAddProductPage() {
 
                 <Form.Group controlId="formProductImages">
                     <Form.Label>Images</Form.Label>
+                    <Row className="image-previews">
+                        {photos.map((photo, index) => (
+                            <Col key={photo.idPhoto} xs={6} md={4} lg={3}>
+                                <Card className="preview-container">
+                                    <Card.Img variant="top" src={photo.fullPath} alt={`Photo ${index}`} className="preview-image" />
+                                    <Button
+                                        variant="danger"
+                                        onClick={() => handleRemoveExistingPhoto(photo.idPhoto)}
+                                    >
+                                        Supprimer
+                                    </Button>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
                     <div onClick={() => document.getElementById("imageUploadInput").click()} className="image-upload-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 svg-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
                         </svg>
                         <span>Ajouter des images</span>
@@ -247,7 +287,7 @@ function MerchantAddProductPage() {
                 </Form.Group>
 
                 <Row className="image-previews">
-                    {previewImages.map((src, index) => (
+                    {previewNewPhotos.map((src, index) => (
                         <Col key={index} xs={6} md={4} lg={3}>
                             <Card className="preview-container">
                                 <Card.Img variant="top" src={src} alt={`Preview ${index}`} className="preview-image" />
@@ -258,7 +298,7 @@ function MerchantAddProductPage() {
                                         value={altDescriptions[index] || ""}
                                         onChange={(e) => handleAltDescriptionChange(e, index)}
                                     />
-                                    <Button variant="danger" onClick={() => handleRemoveImage(index)}>Supprimer</Button>
+                                    <Button variant="danger" onClick={() => handleRemoveNewPhoto(index)}>Supprimer</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -266,11 +306,11 @@ function MerchantAddProductPage() {
                 </Row>
 
                 <Button variant="dark" type="submit">
-                    Ajouter
+                    Mettre à jour
                 </Button>
             </Form>
         </div>
     );
 }
 
-export default MerchantAddProductPage;
+export default AdminEditProductPage;

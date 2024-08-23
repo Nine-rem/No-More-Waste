@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import Calendar from 'react-calendar';
 import axios from 'axios';
 import 'react-calendar/dist/Calendar.css';
-import './../style/calendar.css'; // Créez ce fichier pour les styles personnalisés
+import './../style/calendar.css'; 
 import { UserContext } from '../userContext';
 import { format, isBefore, startOfDay } from 'date-fns';
 import AccountNav from '../accountNav';
@@ -14,12 +14,12 @@ const CustomCalendar = () => {
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [spots, setSpots] = useState({});
-  const { user } = useContext(UserContext); // Utiliser le contexte utilisateur
+  const { user } = useContext(UserContext); 
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await axios.get('/api/services'); // Mise à jour de l'URL
+        const response = await axios.get('/api/services');
         setServices(response.data);
       } catch (error) {
         console.error('Erreur lors de la récupération des services', error);
@@ -32,7 +32,7 @@ const CustomCalendar = () => {
     if (selectedService) {
       const fetchSlots = async () => {
         try {
-          const response = await axios.get('/api/services/timeslots', { // Mise à jour de l'URL
+          const response = await axios.get('/api/services/timeslots', { 
             params: { date: format(startOfDay(date), 'yyyy-MM-dd'), idService: selectedService }
           });
           setSlots(response.data);
@@ -44,17 +44,21 @@ const CustomCalendar = () => {
 
       const fetchSpots = async () => {
         try {
-          const response = await axios.get('/api/services/spots', { // Mise à jour de l'URL
-            params: { month: date.getMonth() + 1, year: date.getFullYear(), idService: selectedService }
-          });
-          setSpots(response.data);
+            const response = await axios.get('/api/spots', {
+                params: { month: date.getMonth() + 1, year: date.getFullYear(), idService: selectedService }
+            });
+    
+            console.log('API Response:', response.data);
+    
+            // Directly set the response data to spots as it's already in the correct format
+            setSpots(response.data);
         } catch (error) {
-          console.error('Erreur lors de la récupération des disponibilités', error);
+            console.error('Erreur lors de la récupération des disponibilités', error);
         }
-      };
-      fetchSpots();
+    };
+    fetchSpots();
     }
-  }, [date, selectedService]);
+  }, [date, selectedService]);    
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
@@ -73,7 +77,7 @@ const CustomCalendar = () => {
   const handleReservation = async () => {
     if (user && selectedSlot) {
       try {
-        await axios.post('/api/users/reserve', { // Mise à jour de l'URL
+        await axios.post('/api/users/reserve', { 
           idUser: user.idUser, 
           idTimeslot: selectedSlot.idTimeslot 
         });
@@ -98,7 +102,6 @@ const CustomCalendar = () => {
   };
 
   const tileDisabled = ({ date, view }) => {
-    // Disable tiles before today
     if (view === 'month') {
       return isBefore(startOfDay(date), startOfDay(new Date()));
     }
@@ -127,7 +130,7 @@ const CustomCalendar = () => {
         tileContent={tileContent}
         tileDisabled={tileDisabled}
       />
-      <h2>Créneaux disponible pour le {format(date, 'EEE MMM dd yyyy')}</h2>
+      <h2>Créneaux disponibles pour le {format(date, 'EEE MMM dd yyyy')}</h2>
       <ul>
         {slots.filter(slot => !slot.reserved).map((slot, index) => (
           <li key={index} onClick={() => handleSlotSelect(slot)}>

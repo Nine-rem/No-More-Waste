@@ -97,7 +97,7 @@ export default function EditSlotsPage() {
                     </Card>
                 ))}
                 <div className="text-center mt-4">
-                    <Button variant="primary" type="submit">
+                    <Button variant="dark" type="submit">
                         Mettre à jour les créneaux horaires
                     </Button>
                 </div>

@@ -67,7 +67,7 @@ export default function AdminSubscriptionPage() {
                 </tbody>
             </Table>
             <Link to="/account/admin/subscription/create">
-                <Button variant="primary">Ajouter un nouvel abonnement</Button>
+                <Button variant="dark">Ajouter un nouvel abonnement</Button>
             </Link>
         </div>
     );

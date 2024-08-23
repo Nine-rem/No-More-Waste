@@ -123,9 +123,9 @@ CREATE TABLE subscribe(
 
 -- Table: propose (Many-to-Many relationship between USER and SERVICE)
 CREATE TABLE propose (
+    idProposal INTEGER AUTO_INCREMENT PRIMARY KEY,
     idUser INTEGER,
     idService INTEGER,
-    PRIMARY KEY (idUser, idService),
     FOREIGN KEY (idUser) REFERENCES USER(idUser),
     FOREIGN KEY (idService) REFERENCES SERVICE(idService)
 );

@@ -92,7 +92,7 @@ export default function SubscriptionPage() {
                                 </Button>
                             </>
                         ) : (
-                            <Button variant="primary" onClick={() => handleSubscribe(subscription.idSubscription)}>
+                            <Button variant="dark" onClick={() => handleSubscribe(subscription.idSubscription)}>
                                 S'abonner
                             </Button>
                         )}

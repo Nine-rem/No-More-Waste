@@ -75,7 +75,7 @@ function MerchantProductPage() {
                 </Col>
                 <Col className="text-right">
                     <Link to="/account/merchant/addProduct">
-                        <Button variant="primary">Ajouter un Produit</Button>
+                        <Button variant="dark">Ajouter un Produit</Button>
                     </Link>
                 </Col>
             </Row>
@@ -116,7 +116,7 @@ function MerchantProductPage() {
                                         {product.reference}<br />
                                         {product.stock} en stock
                                     </Card.Text>
-                                    <Button variant="primary" onClick={() => handleCardClick(product.idProduct)}>Modifier le Produit</Button>
+                                    <Button variant="dark" onClick={() => handleCardClick(product.idProduct)}>Modifier le Produit</Button>
                                     <Button variant="danger" onClick={() => handleDeleteProduct(product.idProduct)} className="ml-2">Supprimer</Button>
                                 </Card.Body>
                             </Card>

@@ -13,7 +13,7 @@ export default function CancelledPage() {
         <div className="cancelled-container">
             <h1>Paiement annulé</h1>
             <p>Votre paiement a été annulé. Vous pouvez réessayer de vous abonner en cliquant ci-dessous.</p>
-            <Button variant="primary" onClick={handleRetryPayment}>Réessayer le paiement</Button>
+            <Button variant="dark" onClick={handleRetryPayment}>Réessayer le paiement</Button>
         </div>
     );
 }

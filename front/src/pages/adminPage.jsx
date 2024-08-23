@@ -23,13 +23,16 @@ function AdminPage() {
             <h1>Admin</h1>
             <p>Vous pouvez effectuer ici l'administration du site</p>
             <Link to="/account/admin/users">
-                <Button variant="primary">Liste des utilisateurs</Button>
+                <Button variant="dark">Liste des utilisateurs</Button>
             </Link>
             <Link to="/account/admin/subscriptions">
-                <Button variant="primary">Liste des abonnements</Button>
+                <Button variant="dark">Liste des abonnements</Button>
             </Link>
-            <Link to="/account/admin/volunteer/applications">
-                <Button variant="primary">Gestions des services</Button>
+            <Link to="/account/admin/services">
+                <Button variant="dark">Gestions des services</Button>
+            </Link>
+            <Link to="/account/admin/products">
+                <Button variant="dark">Gestion des produits</Button>
             </Link>
                 
         </div>

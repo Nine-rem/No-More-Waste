@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import axios from 'axios';
 import { Route, Routes } from 'react-router-dom';
+
 
 import { UserContextProvider } from './userContext.jsx';
 import IndexPage from './pages/indexPage.jsx';
@@ -19,7 +20,7 @@ import ProductPage from './pages/productPage.jsx';
 
 import AccountPage from './pages/accountPage.jsx';
 import EditUserPage from './pages/editUserPage.jsx';
-
+import BookingsPage from './pages/bookingsPage.jsx'; 
 
 import ServicesPage from './pages/servicesPage.jsx';
 import CalendarPage from './pages/customCalendar.jsx';
@@ -40,6 +41,9 @@ import BecomeMerchantPage from './pages/becomeMerchantPage.jsx';
 import MerchantProductPage from './pages/merchantProductPage.jsx';
 import MerchantAddProductPage from './pages/merchantAddProductPage.jsx';
 import MerchantEditProductPage from './pages/merchantEditProductPage.jsx';
+import MerchantBookingsPage from './pages/merchantBookingsPage.jsx';
+
+
 
 import AdminPage from './pages/adminPage.jsx';
 import UsersPage from './pages/usersPage.jsx';
@@ -47,16 +51,29 @@ import AdminEditSubscriptionPage from './pages/adminEditSubscription.jsx';
 import AdminSubscriptionPage from './pages/adminSubscriptionPage.jsx';
 import AdminCreateSubscriptionPage from './pages/adminCreateSubscriptionPage.jsx';
 import AdminEditUserPage from './pages/adminEditUserPage.jsx';
+import AdminProductPage from './pages/adminProductPage.jsx';
+import AdminEditProductPage from './pages/adminEditProductPage';
+import AdminManageServicesPage from './pages/adminManageServicesPage.jsx';
+import AdminAddServicePage from './pages/adminAddServicePage.jsx';
+import AdminListServicePage from './pages/adminListServicePage.jsx';
+import AdminManageApplicationsPage from './pages/adminManageApplicationsPage.jsx';
+import AdminEditServicePage from './pages/adminEditServicePage.jsx';  
+
 
 import NotFoundPage from './pages/notFoundPage.jsx';
 import Layout from './layout.jsx';
 import SubscriptionPage from './pages/subscriptionPage.jsx';
 import SuccessPage from './pages/successPage.jsx';
 import CancelledPage from './pages/cancelledPage.jsx';
-import AdminManageApplicationsPage from './pages/AdminManageApplicationsPage.jsx';
+import ReserveServicePage from './pages/reserveServicePage.jsx';
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL
 axios.defaults.withCredentials = true;
+
+
 function App() {
+
+
+
 
   return (
     console.log(axios.defaults.baseURL),
@@ -75,6 +92,8 @@ function App() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/edit/:id" element={<EditUserPage />} />
           <Route path="/account/subscription" element={<SubscriptionPage />} />
+          <Route path="/account/bookings" element={<BookingsPage />} />
+
 
           <Route path='/account/services' element={<ServicesPage />} />
           <Route path='/account/volunteer/myServices' element={<MyservicesPage />} />
@@ -84,13 +103,16 @@ function App() {
           <Route path='/account/volunteer/services' element={<VolunteerApplyPage />} />
  
           <Route path="/becomeVolunteer" element={<BecomeVolunteerPage />} />
+          <Route path="/becomeMerchant" element={<BecomeMerchantPage />} />
 
           <Route path ='/account/merchant' element={<MerchantPage />} />
-          <Route path="/becomeMerchant" element={<BecomeMerchantPage />} />
+          <Route path="/account/merchant/bookings" element={<MerchantBookingsPage />} />
+          <Route path="/account/merchant/reserve-service" element={<ReserveServicePage />} />
           
           <Route path="/account/merchant/products" element={<MerchantProductPage />} />
           <Route path="/account/merchant/addProduct" element={<MerchantAddProductPage />} />
-          <Route path="/account/merchant/editProduct/:productId" element={<MerchantEditProductPage />} />
+          <Route path="/account/merchant/editProduct/:productId/edit" element={<MerchantEditProductPage />} />
+
 
 
           <Route path="/account/admin" element={<AdminPage />} />
@@ -99,8 +121,14 @@ function App() {
           <Route path="/account/admin/subscriptions/:id/edit" element={<AdminEditSubscriptionPage />} />
           <Route path='/account/admin/subscriptions' element={<AdminSubscriptionPage />} />
           <Route path='/account/admin/subscription/create' element={<AdminCreateSubscriptionPage />} />
-          <Route path="/account/admin/volunteer/applications" element={<AdminManageApplicationsPage />} />
-          
+
+          <Route path='/account/admin/services' element={<AdminManageServicesPage />} />
+          <Route path="/account/admin/services/applications" element={<AdminManageApplicationsPage />} />
+          <Route path='/account/admin/services/add' element={<AdminAddServicePage />} />
+          <Route path='/account/admin/services/list' element={<AdminListServicePage />} />
+          <Route path='/account/admin/services/:idService/edit' element={<AdminEditServicePage />} />
+          <Route path="/account/admin/products" element={<AdminProductPage />} />
+          <Route path="/account/admin/products/:idProduct/edit" element={<AdminEditProductPage />} />
 
           <Route path="/quotation" element={<QuotationPage />} />
           <Route path="/legal" element={<LegalPage />} />

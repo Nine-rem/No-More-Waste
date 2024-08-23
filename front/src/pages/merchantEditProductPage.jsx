@@ -320,7 +320,7 @@ function MerchantEditProductPage() {
                     ))}
                 </Row>
 
-                <Button variant="primary" type="submit">
+                <Button variant="dark" type="submit">
                     Mettre à jour
                 </Button>
             </Form>

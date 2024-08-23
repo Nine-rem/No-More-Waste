@@ -46,7 +46,7 @@ export default function MyServicesPage() {
                                     </Card.Text>
                                     <div className="d-grid gap-2">
                                         <Link to={`/account/volunteer/services/${service.idService}/slots/add`}>
-                                            <Button variant="primary">Ajouter des créneaux horaires</Button>
+                                            <Button variant="dark">Ajouter des créneaux horaires</Button>
                                         </Link>
                                         <Link to={`/account/volunteer/services/${service.idService}/slots/edit`}>
                                             <Button variant="warning">Modifier mes créneaux</Button>
@@ -63,7 +63,7 @@ export default function MyServicesPage() {
                     <Col>
                         <Alert variant="info">Vous n'avez proposé aucun service pour le moment.</Alert>
                         <Link to="/account/volunteer/services">
-                            <Button variant="primary">Proposer un service</Button>
+                            <Button variant="dark">Proposer un service</Button>
                         </Link>
                     </Col>
                 )}

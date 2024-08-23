@@ -27,11 +27,11 @@ app.use(cors({
   credentials: true,
   origin: DOMAIN
 }))
-console.log("Domain .env:   ",process.env.DOMAIN);
-console.log("Domain const:  ",DOMAIN)
-console.log("secret key:    ",process.env.SECRET_KEY);
-console.log("Stripe Secret: ", process.env.STRIPE_SECRET_KEY);
-console.log("Webhook secret:",process.env.STRIPE_WEBHOOK_SECRET);
+//console.log("Domain .env:   ",process.env.DOMAIN);
+//console.log("Domain const:  ",DOMAIN)
+//console.log("secret key:    ",process.env.SECRET_KEY);
+//console.log("Stripe Secret: ", process.env.STRIPE_SECRET_KEY);
+//console.log("Webhook secret:",process.env.STRIPE_WEBHOOK_SECRET);
 
  
 app.use(cookieParser());
@@ -89,7 +89,7 @@ app.post("/api/register", express.json(), async (req, res) => {
         }
 
         const regexname = /^[a-zA-ZÀ-ÿ\s]{2,40}$/;
-        console.log("Nom: ",lastname);
+        //console.log("Nom: ",lastname);
        lastname =lastname.trim().toUpperCase();
        firstname =firstname.trim().toLowerCase();
        firstname =firstname.charAt(0).toUpperCase() +firstname.slice(1);
@@ -378,7 +378,7 @@ app.get('/api/timeslots',express.json(), (req, res) => {
   });
 
 
-app.get('/api/spots', express.json(),(req, res) => {
+  app.get('/api/spots', express.json(), (req, res) => {
     const { month, year, idService } = req.query;
     const query = `
       SELECT date, COUNT(*) as spots
@@ -387,15 +387,20 @@ app.get('/api/spots', express.json(),(req, res) => {
       GROUP BY date
     `;
     connection.query(query, [month, year, idService], (error, results) => {
-      if (error) throw error;
-      const spots = results.reduce((acc, row) => {
-        const dateString = format(new Date(row.date), 'yyyy-MM-dd');
-        acc[dateString] = row.spots;
-        return acc;
-      }, {});
-      res.json(spots);
+        if (error) {
+            console.error('Erreur lors de la récupération des disponibilités:', error);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des disponibilités' });
+        }
+
+        const spots = results.reduce((acc, row) => {
+            const dateString = format(new Date(row.date), 'yyyy-MM-dd');
+            acc[dateString] = row.spots;
+            return acc;
+        }, {});
+
+        res.json(spots);
     });
-  });
+});
 
   /*----------------------------------------------------------
 
@@ -442,13 +447,33 @@ app.post('/api/users/:userId/timeslots/:idTimeslot/reserve', express.json(), (re
   });
 });
 
+app.get('/api/merchant/:idUser/bookings', express.json(), (req, res) => {
+    const userId = req.params.idUser;
+    const query = `
+        SELECT r.idReservation, s.name AS serviceName, t.date, t.time
+        FROM reserved r
+        JOIN timeslot t ON r.idTimeslot = t.idTimeslot
+        JOIN SERVICE s ON t.idService = s.idService
+        WHERE r.idUser = ?
+    `;
+
+    connection.query(query, [userId], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération des réservations:', error);
+            return res.status(500).json({ message: 'Erreur de serveur' });
+        }
+
+        res.json(results);
+    });
+}
+);
 /*----------------------------------------------------
 
   Services
 ---------------------------------------------------------- */
 // Route pour récupérer la liste des services
 app.get('/api/services', express.json(), (req, res) => {
-  const query = 'SELECT idService, name FROM SERVICE';
+  const query = 'SELECT idService, description, name FROM SERVICE';
 
   connection.query(query, (error, results) => {
       if (error) {
@@ -748,7 +773,7 @@ app.post('/api/products', upload.array('images'), express.json(),(req, res) => {
     }
 
     // Log de la valeur de brand pour vérification
-    console.log("Brand:", brand);
+    //console.log("Brand:", brand);
 
     const query = `
         INSERT INTO PRODUCT (name, reference, stock, description, category, brand, expiryDate, idUser)
@@ -761,7 +786,7 @@ app.post('/api/products', upload.array('images'), express.json(),(req, res) => {
             return res.status(500).json({ error: 'Erreur de serveur' });
         }
 
-        const productId = results.insertId;
+        const idProduct = results.insertId;
 
         if (req.files && req.files.length > 0) {
             const insertPhotoQuery = `
@@ -771,7 +796,7 @@ app.post('/api/products', upload.array('images'), express.json(),(req, res) => {
 
             const photoInserts = req.files.map((file, index) => {
                 return new Promise((resolve, reject) => {
-                    connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
+                    connection.query(insertPhotoQuery, [idProduct, file.filename, altDescriptions[index] || '', false], (err) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -880,8 +905,8 @@ app.get('/api/users/:idUser/products', express.json(),(req, res) => {
   });
 });
 
-app.get('/api/users/:userId/products/:productId', express.json(),(req, res) => {
-  const { userId, productId } = req.params;
+app.get('/api/users/:userId/products/:idProduct', express.json(),(req, res) => {
+  const { userId, idProduct } = req.params;
 
   const productQuery = `
       SELECT p.idProduct, p.name, p.reference, p.stock, p.description, ph.idPhoto, ph.path, ph.description as photoDescription, p.brand
@@ -890,7 +915,7 @@ app.get('/api/users/:userId/products/:productId', express.json(),(req, res) => {
       WHERE p.idProduct = ? AND p.idUser = ?
   `;
 
-  connection.query(productQuery, [productId, userId], (err, results) => {
+  connection.query(productQuery, [idProduct, userId], (err, results) => {
       if (err) {
           console.error('Erreur lors de la récupération du produit:', err);
           return res.status(500).json({ error: 'Erreur serveur' });
@@ -914,8 +939,8 @@ app.get('/api/users/:userId/products/:productId', express.json(),(req, res) => {
   });
 });
 
-app.get('/api/products/:productId/photos', express.json(),(req, res) => {
-  const { productId } = req.params;
+app.get('/api/products/:idProduct/photos', express.json(),(req, res) => {
+  const { idProduct } = req.params;
   
   const getPhotosQuery = `
       SELECT idPhoto, path, description
@@ -923,7 +948,7 @@ app.get('/api/products/:productId/photos', express.json(),(req, res) => {
       WHERE idProduct = ?
   `;
 
-  connection.query(getPhotosQuery, [productId], (err, results) => {
+  connection.query(getPhotosQuery, [idProduct], (err, results) => {
       if (err) {
           console.error('Erreur lors de la récupération des photos:', err);
           return res.status(500).json({ error: 'Erreur serveur' });
@@ -990,8 +1015,8 @@ app.delete('/api/photos/:photoId',express.json(),(req, res) => {
     });
 });
 
-app.put('/api/products/:productId', upload.array('images'),express.json(), (req, res) => {
-    const productId = req.params.productId;
+app.put('/api/products/:idProduct', upload.array('images'),express.json(), (req, res) => {
+    const idProduct = req.params.idProduct;
     const { name, reference, stock, description, category, brand, expiryDate } = req.body;
     const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
     const errors = {};
@@ -1022,7 +1047,7 @@ app.put('/api/products/:productId', upload.array('images'),express.json(), (req,
         WHERE idProduct = ?
     `;
 
-    connection.query(query, [name, reference, stock, description, category, brand, category === 'alimentaire' ? expiryDate : null, productId], (error, results) => {
+    connection.query(query, [name, reference, stock, description, category, brand, category === 'alimentaire' ? expiryDate : null, idProduct], (error, results) => {
         if (error) {
             console.error('Erreur lors de la mise à jour du produit :', error);
             return res.status(500).json({ error: 'Erreur de serveur' });
@@ -1041,7 +1066,7 @@ app.put('/api/products/:productId', upload.array('images'),express.json(), (req,
 
             const photoInserts = req.files.map((file, index) => {
                 return new Promise((resolve, reject) => {
-                    connection.query(insertPhotoQuery, [productId, file.filename, altDescriptions[index] || '', false], (err) => {
+                    connection.query(insertPhotoQuery, [idProduct, file.filename, altDescriptions[index] || '', false], (err) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -1066,8 +1091,8 @@ app.put('/api/products/:productId', upload.array('images'),express.json(), (req,
 });
 
 
-app.delete('/api/products/:productId',express.json(), (req, res) => {
-    const productId = req.params.productId;
+app.delete('/api/products/:idProduct',express.json(), (req, res) => {
+    const idProduct = req.params.idProduct;
     const token = req.cookies.token;
     const decoded = jwt.verify(token, secretKey);
     const userId = decoded.userId;
@@ -1076,7 +1101,7 @@ app.delete('/api/products/:productId',express.json(), (req, res) => {
         DELETE FROM PRODUCT WHERE idProduct = ? AND idUser = ?
     `;
 
-    connection.query(deleteProductQuery, [productId, userId], (err, results) => {
+    connection.query(deleteProductQuery, [idProduct, userId], (err, results) => {
         if (err) {
             console.error('Erreur lors de la suppression du produit:', err);
             return res.status(500).json({ message: 'Erreur de serveur' });
@@ -1332,7 +1357,7 @@ app.post('/api/create-subscription', express.json(), async (req, res) => {
                 customer: customerId,
                 metadata: { userId, idSubscription },
             });
-            console.log(DOMAIN)
+            //console.log(DOMAIN)
 
             res.json({ url: session.url });
         });
@@ -1421,7 +1446,7 @@ app.get('/api/user-subscriptions/:idUser', express.json(),(req, res) => {
         }
 
         res.json(results);
-        console.log(results);
+        //console.log(results);
     });
 });
 
@@ -1676,13 +1701,13 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     const sig = req.headers['stripe-signature'];
     let event;
 
-    console.log('Webhook reçu');
+    //console.log('Webhook reçu');
 
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-        console.log('Événement Stripe validé:', event.type);
+     //console.log('Événement Stripe validé:', event.type);
     } catch (err) {
-        console.log('⚠️  Webhook signature verification failed.', err.message);
+        //console.log('⚠️  Webhook signature verification failed.', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -1694,14 +1719,14 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
         case 'charge.succeeded':
         case 'payment_intent.succeeded':
         case 'invoice.payment_succeeded':
-            console.log(`Payment succeeded for event type ${event.type}`);
+            //console.log(`Payment succeeded for event type ${event.type}`);
             break;
         case 'customer.subscription.created':
         case 'customer.subscription.updated':
-            console.log(`Subscription event type ${event.type} handled`);
+            //console.log(`Subscription event type ${event.type} handled`);
             break;
         default:
-            console.log(`Unhandled event type ${event.type}`);
+            //console.log(`Unhandled event type ${event.type}`);
             break;
         }
 
@@ -1723,7 +1748,7 @@ async function handleCheckoutSessionCompleted(session) {
                 console.error('Erreur lors de l\'insertion de l\'abonnement dans la base de données:', error);
                 return;
             }
-            console.log('Abonnement ajouté à la base de données pour l\'utilisateur:', userId);
+            //console.log('Abonnement ajouté à la base de données pour l\'utilisateur:', userId);
         });
     } catch (error) {
         console.error('Erreur lors du traitement de l\'événement checkout.session.completed:', error);
@@ -1746,10 +1771,267 @@ async function getUserIdFromCustomerId(customerId) {
         });
     });
 }
+
+/*----------------------------------------------------
+
+    Admin - Produits
+---------------------------------------------------------- */
+
+app.get('/api/admin/products', (req, res) => {
+    const query = `
+        SELECT p.*, ph.idPhoto, ph.path AS photoPath
+        FROM PRODUCT p
+        LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+    `;
+  
+    connection.query(query, (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la récupération des produits', err);
+            return res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
+        }
+  
+        const products = {};
+  
+        results.forEach(row => {
+            if (!products[row.idProduct]) {
+                products[row.idProduct] = {
+                    idProduct: row.idProduct,
+                    name: row.name,
+                    reference: row.reference,
+                    stock: row.stock,
+                    brand: row.brand,
+                    description: row.description,
+                    category: row.category,
+                    photos: []
+                };
+            }
+  
+            if (row.photoPath) {
+                products[row.idProduct].photos.push({
+                    idPhoto: row.idPhoto,
+                    fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                });
+            }
+        });
+  
+        res.json(Object.values(products));
+    });
+  });
+  
+app.get('/api/admin/products/:idProduct', (req, res) => {
+  const { idProduct } = req.params;
+
+  const productQuery = `
+      SELECT p.idProduct, p.name, p.reference, p.stock, p.description, ph.idPhoto, ph.path, ph.description as photoDescription, p.brand
+      FROM PRODUCT p
+      LEFT JOIN PHOTO ph ON p.idProduct = ph.idProduct
+      WHERE p.idProduct = ?
+  `;
+
+  connection.query(productQuery, [idProduct], (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération du produit:', err);
+          return res.status(500).json({ error: 'Erreur serveur' });
+      }
+
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'Produit non trouvé' });
+      }
+
+      const product = {
+          idProduct: results[0].idProduct,
+          name: results[0].name,
+          reference: results[0].reference,
+          stock: results[0].stock,
+          description: results[0].description,
+          brand: results[0].brand,
+          photos: results.filter(r => r.idPhoto).map(r => ({
+              idPhoto: r.idPhoto,
+              fullPath: `${req.protocol}://${req.get('host')}/uploads/${r.path}`,
+              description: r.photoDescription
+          }))
+      };
+
+      res.json(product);
+  });
+});
+
+
+app.put('/api/admin/products/:idProduct', upload.array('images'), (req, res) => {
+    const idProduct = req.params.idProduct;
+    const { name, reference, stock, description, category, brand, expiryDate } = req.body;
+    const altDescriptions = req.body.altDescriptions ? [].concat(req.body.altDescriptions) : [];
+    const errors = {};
+
+    if (!/^\d+$/.test(reference)) {
+        errors.reference = 'La référence doit contenir uniquement des chiffres.';
+    }
+
+    if (category === 'alimentaire' && !expiryDate) {
+        errors.expiryDate = 'La date de péremption est requise pour les produits alimentaires.';
+    }
+
+    if (!name) errors.name = 'Le nom du produit est requis.';
+    if (!stock) errors.stock = 'Le stock est requis.';
+    if (!category) errors.category = 'La catégorie est requise.';
+    
+    if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ errors });
+    }
+
+    const query = `
+        UPDATE PRODUCT 
+        SET name = ?, reference = ?, stock = ?, description = ?, category = ?, brand = ?, expiryDate = ?
+        WHERE idProduct = ?
+    `;
+
+    connection.query(query, [name, reference, stock, description, category, brand, category === 'alimentaire' ? expiryDate : null, idProduct], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour du produit :', error);
+            return res.status(500).json({ error: 'Erreur de serveur' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Produit non trouvé' });
+        }
+
+        if (req.files && req.files.length > 0) {
+            const insertPhotoQuery = `
+                INSERT INTO PHOTO (idProduct, path, description, temporary)
+                VALUES (?, ?, ?, ?)
+            `;
+
+            const photoInserts = req.files.map((file, index) => {
+                return new Promise((resolve, reject) => {
+                    connection.query(insertPhotoQuery, [idProduct, file.filename, altDescriptions[index] || '', false], (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            });
+
+            Promise.all(photoInserts)
+                .then(() => {
+                    res.json({ message: 'Produit mis à jour avec succès, y compris les nouvelles photos.' });
+                })
+                .catch(err => {
+                    console.error('Erreur lors de l\'ajout des nouvelles photos :', err);
+                    res.status(500).json({ error: 'Erreur lors de l\'ajout des nouvelles photos' });
+                });
+        } else {
+            res.json({ message: 'Produit mis à jour avec succès.' });
+        }
+    });
+});
+
+app.delete('/api/admin/products/:idProduct', (req, res) => {
+    const idProduct = req.params.idProduct;
+
+    const deleteProductQuery = `
+        DELETE FROM PRODUCT WHERE idProduct = ?
+    `;
+
+    connection.query(deleteProductQuery, [idProduct], (err, results) => {
+        if (err) {
+            console.error('Erreur lors de la suppression du produit:', err);
+            return res.status(500).json({ message: 'Erreur de serveur' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Produit non trouvé' });
+        }
+
+        res.json({ message: 'Produit supprimé avec succès' });
+    });
+});
+
+
+/*----------------------------------------------------
+
+    Admin - Services
+---------------------------------------------------------- */
+
+app.get('/api/services/:idService', express.json(), (req, res) => {
+    const idService = req.params.idService;
+    const query = `SELECT * FROM SERVICE WHERE idService = ?`;
+
+    connection.query(query, [idService], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la récupération du service:', error);
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Service non trouvé' });
+        }
+        res.json(results[0]);
+    });
+});
+
+app.post('/api/services', express.json(), (req, res) => {
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+        return res.status(400).json({ error: 'Tous les champs sont requis.' });
+    }
+
+    const query = `INSERT INTO SERVICE (name, description) VALUES (?, ?)`;
+
+    connection.query(query, [name, description], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de l\'ajout du service:', error);
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        res.status(200).json({ message: 'Service ajouté avec succès.' });
+    });
+});
+
+
+
+app.put('/api/services/:idService', express.json(), (req, res) => {
+    const idService = req.params.idService;
+    //console.log(idService);
+    const { name, description } = req.body;
+    //console.log(req.body);
+
+    const query = `UPDATE SERVICE SET name = ?, description = ? WHERE idService = ?`;
+
+    connection.query(query, [name, description, idService], (error) => {
+        if (error) {
+            console.error('Erreur lors de la mise à jour du service:', error);
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        res.json({ message: 'Service mis à jour avec succès' });
+    });
+});
+
+app.delete('/api/services/:idService',  express.json(), (req, res) => {
+    const idService = req.params.idService;
+
+    const query = `DELETE FROM SERVICE WHERE idService = ?`;
+
+    connection.query(query, [idService], (error, results) => {
+        if (error) {
+            console.error('Erreur lors de la suppression du service:', error);
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ error: 'Service non trouvé' });
+        }
+
+        res.json({ message: 'Service supprimé avec succès' });
+    });
+});
+
+
+
 /* ----------------------------------------------------------
       Démarrage du serveur
 ---------------------------------------------------------- */
 
 app.listen(5000, () => {    
-    console.log("Serveur à l'écoute sur le port 5000")
+    //console.log("Serveur à l'écoute sur le port 5000")
 })
