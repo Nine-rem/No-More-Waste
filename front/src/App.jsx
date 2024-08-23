@@ -56,7 +56,7 @@ import AdminEditProductPage from './pages/adminEditProductPage';
 import AdminManageServicesPage from './pages/adminManageServicesPage.jsx';
 import AdminAddServicePage from './pages/adminAddServicePage.jsx';
 import AdminListServicePage from './pages/adminListServicePage.jsx';
-import AdminManageApplicationsPage from './pages/adminManageApplicationsPage.jsx';
+import AdminManageApplicationsPage from './pages/AdminManageApplicationsPage.jsx';
 import AdminEditServicePage from './pages/adminEditServicePage.jsx';  
 
 
