@@ -1542,7 +1542,7 @@ app.get('/api/users', express.json(), (req, res) => {
 
 app.patch('/api/users/:id/ban', express.json(), (req, res) => {
   const userId = req.params.id;
-  connection.query('SELECT banned FROM users WHERE id = ?', [userId], (err, results) => {
+  connection.query('SELECT banned FROM USER WHERE idUser = ?', [userId], (err, results) => {
       if (err) {
           res.status(500).json({ message: err.message });
           return;
@@ -1553,7 +1553,7 @@ app.patch('/api/users/:id/ban', express.json(), (req, res) => {
       }
 
       const newBanStatus = !results[0].banned;
-      connection.query('UPDATE users SET banned = ? WHERE id = ?', [newBanStatus, userId], (err) => {
+      connection.query('UPDATE USER SET banned = ? WHERE id = ?', [newBanStatus, userId], (err) => {
           if (err) {
               res.status(500).json({ message: err.message });
               return;
