@@ -1542,8 +1542,10 @@ app.get('/api/users', express.json(), (req, res) => {
 
 app.patch('/api/users/:id/ban', express.json(), (req, res) => {
   const userId = req.params.id;
-  connection.query('SELECT banned FROM USER WHERE idUser = ?', [userId], (err, results) => {
+//   console.log(userId);
+  connection.query('SELECT isBanned FROM USER WHERE idUser = ?', [userId], (err, results) => {
       if (err) {
+            // console.error('Erreur lors de la récupération de l\'utilisateur:', err);
           res.status(500).json({ message: err.message });
           return;
       }
@@ -1552,13 +1554,15 @@ app.patch('/api/users/:id/ban', express.json(), (req, res) => {
           return;
       }
 
-      const newBanStatus = !results[0].banned;
-      connection.query('UPDATE USER SET banned = ? WHERE id = ?', [newBanStatus, userId], (err) => {
+      const newBanStatus = !results[0].isBanned;
+    //   console.log(newBanStatus);
+      connection.query('UPDATE USER SET isBanned = ? WHERE idUser = ?', [newBanStatus, userId], (err) => {
           if (err) {
+            //   console.log('Erreur lors de la mise à jour de l\'utilisateur:', err);
               res.status(500).json({ message: err.message });
               return;
           }
-          res.json({ id: userId, banned: newBanStatus });
+          res.json({ id: userId, isBanned: newBanStatus });
       });
   });
 });
