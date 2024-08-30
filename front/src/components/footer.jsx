@@ -8,9 +8,6 @@ function Footer() {
           <Link to="/" className="nav-link px-2">Accueil</Link>
         </li>
         <li className="nav-item">
-          <Link to="/stayAll" className="nav-link px-2">Logement</Link>
-        </li>
-        <li className="nav-item">
           <Link to="/service" className="nav-link px-2">Service</Link>
         </li>
         <li className="nav-item">

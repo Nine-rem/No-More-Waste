@@ -3,8 +3,8 @@ Définition des constantes
 ---------------------------------------------------------- */
 
 require('dotenv').config();
-const DOMAIN = "http://localhost:5173"
-// const DOMAIN = "https://www.nomorewaste.site";
+// const DOMAIN = "http://localhost:5173"
+const DOMAIN = "https://www.nomorewaste.site";
 const express = require('express')
 const app = express()
 const connection = require('./db-connection.js');
@@ -35,7 +35,7 @@ app.use(cors({
 
  
 app.use(cookieParser());
-app.use("/uploads",express.static(__dirname + '/uploads'));
+app.use("/api/uploads",express.static(__dirname + '/uploads'));
 
 /* ----------------------------------------------------------
       Gestion des utilisateurs
@@ -851,7 +851,7 @@ app.get('/api/products/:idProduct', (req, res) => {
             category: results[0].category,
             photos: results.map(row => ({
                 idPhoto: row.idPhoto,
-                fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${row.photoPath}`
             }))
         };
   
@@ -896,7 +896,7 @@ app.get('/api/users/:idUser/products', express.json(),(req, res) => {
           if (row.photoPath) {
               products[row.idProduct].photos.push({
                   idPhoto: row.idPhoto,
-                  fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                  fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${row.photoPath}`
               });
           }
       });
@@ -956,7 +956,7 @@ app.get('/api/products/:idProduct/photos', express.json(),(req, res) => {
 
       const photos = results.map(photo => ({
           idPhoto: photo.idPhoto,
-          fullPath: `${req.protocol}://${req.get('host')}/uploads/${photo.path}`,
+          fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${photo.path}`,
           description: photo.description
       }));
 
@@ -1149,7 +1149,7 @@ app.get('/api/products', (req, res) => {
             if (row.photoPath) {
                 products[row.idProduct].photos.push({
                     idPhoto: row.idPhoto,
-                    fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                    fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${row.photoPath}`
                 });
             }
         });
@@ -1813,7 +1813,7 @@ app.get('/api/admin/products', (req, res) => {
             if (row.photoPath) {
                 products[row.idProduct].photos.push({
                     idPhoto: row.idPhoto,
-                    fullPath: `${req.protocol}://${req.get('host')}/uploads/${row.photoPath}`
+                    fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${row.photoPath}`
                 });
             }
         });
@@ -1851,7 +1851,7 @@ app.get('/api/admin/products/:idProduct', (req, res) => {
           brand: results[0].brand,
           photos: results.filter(r => r.idPhoto).map(r => ({
               idPhoto: r.idPhoto,
-              fullPath: `${req.protocol}://${req.get('host')}/uploads/${r.path}`,
+              fullPath: `${req.protocol}://${req.get('host')}/api/uploads/${r.path}`,
               description: r.photoDescription
           }))
       };

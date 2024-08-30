@@ -40,19 +40,16 @@ function Header() {
                         </a>
                         <ul className="dropdown-menu">
                             <Link to="/account"><li><a className="dropdown-item">Votre profil</a></li></Link>
-                            <li><a className="dropdown-item" href="#">Vos documents</a></li>
-                            <li><a className="dropdown-item" href="#">Vos comptes</a></li>
-                            <Link to="/account/bookings"><li><a className="dropdown-item">Vos réservations</a></li></Link>
-                            
-                            <li><a className="dropdown-item" href="#">Logements favoris</a></li>
+                            <Link to="/account/merchant/bookings"><li><a className="dropdown-item">Vos réservations</a></li></Link>
+
                         </ul>
                         </li>
                         <li className="nav-item dropdown">
                         <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Espace bailleur
+                            Espace Commerçant
                         </a>
                         <ul className="dropdown-menu">
-                            <Link to="/account/places/new"><li><a className="dropdown-item" href="#">Nouveau bien</a></li></Link>
+                            <Link to="/account/places/new"><li><a className="dropdown-item">Nouveau produit</a></li></Link>
                                                     
                             <Link to="/account/places"><li><a className="dropdown-item" href="#">Vos biens</a></li></Link>
                             <li><a className="dropdown-item" href="#">Réservations</a></li>
