@@ -1701,7 +1701,7 @@ app.get('/api/subscription/:id', express.json(), (req, res) => {
     Stripe Webhooks
 ---------------------------------------------------------- */
 // const endpointSecret = "we_1PpGXVGtnpoEQDI2XCub0F2Y";
-app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
